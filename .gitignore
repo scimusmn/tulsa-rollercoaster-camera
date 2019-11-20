@@ -1,3 +1,4 @@
+bin/
 CMakeCache.txt
 CMakeFiles
 CMakeScripts
@@ -7,3 +8,4 @@ cmake_install.cmake
 install_manifest.txt
 compile_commands.json
 CTestTestfile.cmake
+CopyOfCMakeCache.txt

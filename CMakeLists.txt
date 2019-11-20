@@ -1,18 +1,38 @@
-cmake_minimum_required(VERSION 3.10)
-set(CMAKE_CXX_STANDARD 11)
+macro(print_all_variables)
+    message(STATUS "print_all_variables------------------------------------------{")
+    get_cmake_property(_variableNames VARIABLES)
+    foreach (_variableName ${_variableNames})
+        message(STATUS "${_variableName}=${${_variableName}}")
+    endforeach()
+    message(STATUS "print_all_variables------------------------------------------}")
+endmacro()
 
-project(rollercoaster)
+project(ui-test CXX)
 
+cmake_minimum_required(VERSION 3.0)
+
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+set(CMAKE_BUILD_TYPE Debug)
+#set(CMAKE_VERBOSE_MAKEFILE ON)
+set(ROLLERCOASTER_SOURCE_DIR ${CMAKE_HOME_DIRECTORY}/src)
+set(ROLLERCOASTER_SOURCES ${ROLLERCOASTER_SOURCE_DIR}/main.cpp ${ROLLERCOASTER_SOURCE_DIR}/settings.cpp ${ROLLERCOASTER_SOURCE_DIR}/DeviceEnumerator.cpp ${ROLLERCOASTER_SOURCE_DIR}/update.cpp ${ROLLERCOASTER_SOURCE_DIR}/arduino_util.cpp)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_HOME_DIRECTORY}/bin)
+
+#find_package(libserialport REQUIRED)
 find_package(OpenCV REQUIRED)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(GTK REQUIRED gtk+-3.0)
+
 include_directories(${OpenCV_INCLUDE_DIRS})
+include_directories(${GTK_INCLUDE_DIRS})
+link_directories(${GTK_LIBRARY_DIRS})
 
-#include_directories( C:/opencv/source/modules/calib3d/include C:/opencv/source/modules/core/include C:/opencv/source/modules/cudaarithm/include C:/opencv/source/modules/cudabgsegm/include C:/opencv/source/modules/cudacodec/include C:/opencv/source/modules/cudafeatures2d/include C:/opencv/source/modules/cudafilters/include C:/opencv/source/modules/cudaimgproc/include C:/opencv/source/modules/cudalegacy/include C:/opencv/source/modules/cudaobjdetect/include C:/opencv/source/modules/cudaoptflow/include C:/opencv/source/modules/cudastereo/include C:/opencv/source/modules/cudawarping/include C:/opencv/source/modules/cudev/include C:/opencv/source/modules/dnn/include C:/opencv/source/modules/features2d/include C:/opencv/source/modules/flann/include C:/opencv/source/modules/highgui/include C:/opencv/source/modules/imgcodecs/include C:/opencv/source/modules/imgproc/include C:/opencv/source/modules/java/include C:/opencv/source/modules/js/include C:/opencv/source/modules/ml/include C:/opencv/source/modules/objdetect/include C:/opencv/source/modules/photo/include C:/opencv/source/modules/python/include C:/opencv/source/modules/shape/include C:/opencv/source/modules/stitching/include C:/opencv/source/modules/superres/include C:/opencv/source/modules/ts/include C:/opencv/source/modules/video/include C:/opencv/source/modules/videoio/include C:/opencv/source/modules/videostab/include C:/opencv/source/modules/viz/include C:/opencv/source/modules/world/include C:/opencv/source/include C:/opencv/build )
+add_definitions(${GTK_CFLAGS_OTHER})
 
-#link_directories( C:/opencv/build/lib )
+add_executable(test ${ROLLERCOASTER_SOURCES})
 
-#add_executable(rollercoaster rollercoaster.cpp DeviceEnumerator.cpp)
-#target_link_libraries( rollercoaster opencv_core348 opencv_highgui348 opencv_videoio348 ole32 oleaut32 strmiids )
+target_link_libraries(test ${OpenCV_LIBS} ${GTK_LIBRARIES} m ole32 oleaut32 strmiids serialport)
 
-add_executable(configurator config.cpp DeviceEnumerator.cpp)
-target_link_libraries(configurator stdc++ ole32 oleaut32 strmiids ${OpenCV_LIBS})
-#target_link_libraries( configurator opencv_core348 opencv_highgui348 opencv_videoio348 opencv_imgproc348 ole32 oleaut32 strmiids )
+#print_all_variables()
+configure_file(res/config.ui bin/config.ui COPYONLY)
+configure_file(res/icon.png bin/icon.png COPYONLY)
