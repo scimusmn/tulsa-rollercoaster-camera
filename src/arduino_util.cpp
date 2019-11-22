@@ -273,12 +273,8 @@ enum sp_return enumerate_ports(struct sp_port*** ports, int* n_ports) {
     int n = 0;
 
   enum sp_return err = sp_list_ports(ports);
-  if (err == SP_OK) {
-    for (; (*ports)[n]; n++) {
-      printf("found port \"%s\"\n", sp_get_port_name((*ports)[n]));
-    }
-  }
-  else {
+  for (; (*ports)[n]; n++);
+  if (err != SP_OK) {
     printf("ERROR: could not get list of ports\n");
   }
   printf("\n");

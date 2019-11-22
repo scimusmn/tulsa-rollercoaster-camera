@@ -57,8 +57,8 @@ typedef struct {
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 typedef struct {
-  std::string camera1_path;
-  std::string camera2_path;
+  int camera1_id;
+  int camera2_id;
   camera_settings camera1_settings;
   camera_settings camera2_settings;
 } rollercoaster_settings;

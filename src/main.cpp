@@ -14,7 +14,7 @@
 #include <iostream>
 
 // OpenCV Device Enumerator Library ( by studiosi -- https://github.com/studiosi/OpenCVDeviceEnumerator )
-#include "DeviceEnumerator.h"
+// #include "DeviceEnumerator.h"
 
 // project headers
 #include "settings.h"
@@ -31,6 +31,10 @@ using namespace cv;
 
 void update_settings(GtkWidget*, void*);
 void pick_camera(GtkWidget*, void*);
+void turn_on_track1(GtkWidget* w, void* data_);
+void turn_off_track1(GtkWidget* w, void* data_);
+void turn_on_track2(GtkWidget* w, void* data_);
+void turn_off_track2(GtkWidget* w, void* data_);
 int show_camera(void*);
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -38,8 +42,6 @@ int show_camera(void*);
 int main(int argc, char** argv) {
   // setup user data
   app_data data;
-  data.index = 0;
-  data.camera = VideoCapture(0);
 
   // find tracks
   enum sp_return err;
@@ -102,15 +104,17 @@ int main(int argc, char** argv) {
     err = sp_get_port_by_name(track1_name, &data.track1);
     if (err != SP_OK) {
       cerr << "FATAL: could not get port for track 1" << endl;
+      print_error(err);
       return 1;
     }
     err = sp_open(data.track1,SP_MODE_WRITE);
     if ( err != SP_OK) {
       cerr << "FATAL: could not open track 1" << endl;
+      print_error(err);
       return 1;
     }
     sp_blocking_read(data.track1, NULL, 1, 10000);
-  }
+    }
 
   // open track 2
   if ( track2_name == NULL ) {
@@ -121,11 +125,13 @@ int main(int argc, char** argv) {
     err = sp_get_port_by_name(track2_name, &data.track2);
     if (err != SP_OK) {
       cerr << "FATAL: could not get port for track 2" << endl;
+      print_error(err);
       return 1;
     }
     err = sp_open(data.track2,SP_MODE_WRITE);
     if ( err != SP_OK) {
       cerr << "FATAL: could not open track 2" << endl;
+      print_error(err);
       return 1;
     }
     sp_blocking_read(data.track2, NULL, 1, 10000);
@@ -139,39 +145,53 @@ int main(int argc, char** argv) {
 
   // find all cameras
   {
-    map<int, Device> devices;
-    DeviceEnumerator de;
-    devices = de.getVideoDevicesMap();
-
-    if (devices.empty()) {
-      // abort if no cameras detected
-      cerr << "FATAL: no cameras detected!" << endl;
-      return -1;
-    }
-
-    // load cameras into user data
-    for (auto dev : devices) {
-      camera_settings s = get_default_camera_settings();
-      s.iscamera1 = false;
-      s.iscamera2 = false;
-
-      if ( dev.second.devicePath == data.settings.camera1_path ) {
-	s = data.settings.camera1_settings;
-	s.iscamera1 = true;
-	s.iscamera2 = false;
-      }
-      if ( dev.second.devicePath == data.settings.camera2_path ) {
-	s = data.settings.camera2_settings;
+    int opencv_id = 0;
+    bool searching = true;
+    while ( searching ) {
+      VideoCapture cap(opencv_id);
+      if ( cap.isOpened() ) {
+	// successfully opened camera, add to list
+	camera_settings s = get_default_camera_settings();
 	s.iscamera1 = false;
-	s.iscamera2 = true;
-      }
+	s.iscamera2 = false;
 
-      s.path = dev.second.devicePath;
-      s.opencv_id = dev.first;
-      data.all_settings.push_back(s);
+	if ( opencv_id == data.settings.camera1_id ) {
+	  s = data.settings.camera1_settings;
+	  s.iscamera1 = true;
+	  s.iscamera2 = false;
+	}
+	if ( opencv_id == data.settings.camera2_id ) {
+	  s = data.settings.camera2_settings;
+	  s.iscamera1 = false;
+	  s.iscamera2 = true;
+	}
+
+	s.opencv_id = opencv_id;
+	data.all_settings.push_back(s);
+
+	++opencv_id;
+      }
+      else {
+	// failed to open camera, found the end of the line
+	searching = false;
+      }
     }
   }
 
+  if ( data.all_settings.size() < 2 ) {
+    // not enough cameras found, abort!
+    cerr << "FATAL: expected at least 2 cameras, found " << data.all_settings.size() << " instead; aborting!" << endl;
+    return 1;
+  }
+
+  // open camera 0
+  data.index = 0;
+  data.camera = VideoCapture(0);
+  if ( !data.camera.isOpened() ) {
+    cerr << "FATAL: could not open cameras" << endl;
+    return 1;
+  }
+  
   // build window
   GtkBuilder* builder;
   GError* error = NULL;
@@ -212,6 +232,10 @@ int main(int argc, char** argv) {
   // connect callbacks
   gtk_builder_add_callback_symbol(builder, "pick_camera", G_CALLBACK(pick_camera));
   gtk_builder_add_callback_symbol(builder, "update_settings", G_CALLBACK(update_settings));
+  gtk_builder_add_callback_symbol(builder, "turn_on_track1",  G_CALLBACK(turn_on_track1) );
+  gtk_builder_add_callback_symbol(builder, "turn_off_track1", G_CALLBACK(turn_off_track1));
+  gtk_builder_add_callback_symbol(builder, "turn_on_track2",  G_CALLBACK(turn_on_track2) );
+  gtk_builder_add_callback_symbol(builder, "turn_off_track2", G_CALLBACK(turn_off_track2));
   gtk_builder_connect_signals(builder, &data);
 
   // list all cameras in the camera combo
@@ -233,11 +257,11 @@ int main(int argc, char** argv) {
   for ( auto camera : data.all_settings ) {
     if ( camera.iscamera1 ) {
       data.settings.camera1_settings = camera;
-      data.settings.camera1_path = camera.path;
+      data.settings.camera1_id = camera.opencv_id;
     }
     if ( camera.iscamera2 ) {
       data.settings.camera2_settings = camera;
-      data.settings.camera2_path = camera.path;
+      data.settings.camera2_id = camera.opencv_id;
     }
   }
 
@@ -278,6 +302,38 @@ void pick_camera(GtkWidget* w, void* data_) {
   }
 
   update_widgets_from_settings(data);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+void turn_on_track1(GtkWidget* w, void* data_) {
+  app_data* data = (app_data*) data_;
+
+  data->run_track1 = true;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+void turn_off_track1(GtkWidget* w, void* data_) {
+  app_data* data = (app_data*) data_;
+
+  data->run_track1 = false;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+void turn_on_track2(GtkWidget* w, void* data_) {
+  app_data* data = (app_data*) data_;
+
+  data->run_track2 = true;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+void turn_off_track2(GtkWidget* w, void* data_) {
+  app_data* data = (app_data*) data_;
+
+  data->run_track2 = false;
 }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -327,22 +383,19 @@ int show_camera(void* data_) {
   char on = 'a';
   char off = 'b';
   
-  if (triggered && settings.iscamera1) {
+  if ((triggered && settings.iscamera1) || data->run_track1) {
     sp_blocking_write(data->track1, &on, 1, 100);
   }
   else {
     sp_blocking_write(data->track1, &off, 1, 100);
   }
 
-  if (triggered && settings.iscamera2) {
+  if ((triggered && settings.iscamera2) || data->run_track2) {
     sp_blocking_write(data->track2, &on, 1, 100);
   }
   else {
     sp_blocking_write(data->track2, &off, 1, 100);
   }
-
-  cout << "Track 1: " << sp_output_waiting(data->track1) << endl;
-  cout << "Track 2: " << sp_output_waiting(data->track2) << endl;
 
   imshow("Mask", mask);
   imshow("Camera",frame);

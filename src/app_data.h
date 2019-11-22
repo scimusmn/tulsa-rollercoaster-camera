@@ -16,6 +16,8 @@ typedef struct {
 
   struct sp_port* track1;
   struct sp_port* track2;
+  bool run_track1;
+  bool run_track2;
   
   std::vector<camera_settings> all_settings;
   int index;

@@ -111,6 +111,8 @@
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="receives_default">True</property>
+            <signal name="pressed" handler="turn_on_track2" swapped="no"/>
+            <signal name="released" handler="turn_off_track2" swapped="no"/>
           </object>
           <packing>
             <property name="left_attach">1</property>
@@ -588,6 +590,8 @@
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="receives_default">True</property>
+            <signal name="pressed" handler="turn_on_track1" swapped="no"/>
+            <signal name="released" handler="turn_off_track1" swapped="no"/>
           </object>
           <packing>
             <property name="left_attach">1</property>

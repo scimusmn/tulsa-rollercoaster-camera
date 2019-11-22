@@ -11,8 +11,8 @@ int load_settings(rollercoaster_settings* settings, std::string settings_file) {
   }
 
   // load camera paths
-  settings->camera1_path = (std::string)fs["camera1_path"];
-  settings->camera2_path = (std::string)fs["camera2_path"];
+  settings->camera1_id = (int)fs["camera1_id"];
+  settings->camera2_id = (int)fs["camera2_id"];
 
   // load settings for camera 1
   cv::FileNode n = fs["camera1_settings"];
@@ -62,8 +62,8 @@ int save_settings(rollercoaster_settings* settings, std::string settings_file) {
   }
 
   // save camera paths
-  fs << "camera1_path" << settings->camera1_path;
-  fs << "camera2_path" << settings->camera2_path;
+  fs << "camera1_id" << settings->camera1_id;
+  fs << "camera2_id" << settings->camera2_id;
 
   // save settings for camera 1
   fs << "camera1_settings" << "{";
@@ -110,8 +110,8 @@ int save_settings(rollercoaster_settings* settings, std::string settings_file) {
 
 void set_default(rollercoaster_settings* settings) {
   // load default settings
-  settings->camera1_path = "";
-  settings->camera1_path = "";
+  settings->camera1_id = -1;
+  settings->camera1_id = -1;
 
   // default settings for camera 1
   settings->camera1_settings = get_default_camera_settings();
@@ -137,7 +137,7 @@ camera_settings get_default_camera_settings() {
   s.x_offset     = 288;
   s.y_offset     = 178;
   s.percent_min  =   0;	
-  s.percent_max  = 100;
+  s.percent_max  =   0;
   return s;
 }
 
