@@ -29,9 +29,9 @@ link_directories(${GTK_LIBRARY_DIRS})
 
 add_definitions(${GTK_CFLAGS_OTHER})
 
-add_executable(test ${ROLLERCOASTER_SOURCES})
+add_executable(config ${ROLLERCOASTER_SOURCES})
 
-target_link_libraries(test ${OpenCV_LIBS} ${GTK_LIBRARIES} m ole32 oleaut32 strmiids serialport)
+target_link_libraries(config ${OpenCV_LIBS} ${GTK_LIBRARIES} m serialport)
 
 #print_all_variables()
 configure_file(res/config.ui bin/config.ui COPYONLY)

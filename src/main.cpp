@@ -13,9 +13,6 @@
 // io
 #include <iostream>
 
-// OpenCV Device Enumerator Library ( by studiosi -- https://github.com/studiosi/OpenCVDeviceEnumerator )
-// #include "DeviceEnumerator.h"
-
 // project headers
 #include "settings.h"
 #include "app_data.h"
@@ -93,8 +90,6 @@ int main(int argc, char** argv) {
     }
   }
 
-  sp_free_port_list(ports);
-
   // open track 1
   if ( track1_name == NULL ) {
     cerr << "FATAL: could not find track 1!" << endl;
@@ -136,7 +131,9 @@ int main(int argc, char** argv) {
     }
     sp_blocking_read(data.track2, NULL, 1, 10000);
   }
-    
+
+  sp_free_port_list(ports);
+
   // load camera settings
   if( load_settings(&(data.settings), SETTINGS_FILE) != 0 ) {
     cout << "WARNING: could not find '" << SETTINGS_FILE << "', using default values" << endl;
@@ -145,9 +142,7 @@ int main(int argc, char** argv) {
 
   // find all cameras
   {
-    int opencv_id = 0;
-    bool searching = true;
-    while ( searching ) {
+    for(int opencv_id=0; opencv_id<8; opencv_id++) {
       VideoCapture cap(opencv_id);
       if ( cap.isOpened() ) {
 	// successfully opened camera, add to list
@@ -171,10 +166,6 @@ int main(int argc, char** argv) {
 
 	++opencv_id;
       }
-      else {
-	// failed to open camera, found the end of the line
-	searching = false;
-      }
     }
   }
 
@@ -186,7 +177,7 @@ int main(int argc, char** argv) {
 
   // open camera 0
   data.index = 0;
-  data.camera = VideoCapture(0);
+  data.camera = VideoCapture(data.all_settings[0].opencv_id);
   if ( !data.camera.isOpened() ) {
     cerr << "FATAL: could not open cameras" << endl;
     return 1;
