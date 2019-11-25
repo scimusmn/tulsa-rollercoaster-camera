@@ -260,6 +260,9 @@ int main(int argc, char** argv) {
   save_settings(&(data.settings), SETTINGS_FILE);
 
   // close track serial ports
+  char off = 'b';
+  sp_blocking_write(data.track1, &off, 1, 100);
+  sp_blocking_write(data.track2, &off, 1, 100);
   sp_close(data.track1);
   sp_close(data.track2);
   
