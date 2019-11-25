@@ -15,7 +15,8 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 set(CMAKE_BUILD_TYPE Debug)
 #set(CMAKE_VERBOSE_MAKEFILE ON)
 set(ROLLERCOASTER_SOURCE_DIR ${CMAKE_HOME_DIRECTORY}/src)
-set(ROLLERCOASTER_SOURCES ${ROLLERCOASTER_SOURCE_DIR}/main.cpp ${ROLLERCOASTER_SOURCE_DIR}/settings.cpp ${ROLLERCOASTER_SOURCE_DIR}/update.cpp ${ROLLERCOASTER_SOURCE_DIR}/arduino_util.cpp )
+set(CONFIG_SOURCES ${ROLLERCOASTER_SOURCE_DIR}/config.cpp ${ROLLERCOASTER_SOURCE_DIR}/settings.cpp ${ROLLERCOASTER_SOURCE_DIR}/update.cpp ${ROLLERCOASTER_SOURCE_DIR}/arduino_util.cpp )
+set(ROLLERCOASTER_SOURCES ${ROLLERCOASTER_SOURCE_DIR}/rollercoaster.cpp ${ROLLERCOASTER_SOURCE_DIR}/settings.cpp ${ROLLERCOASTER_SOURCE_DIR}/arduino_util.cpp )
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_HOME_DIRECTORY}/bin)
 
 #find_package(libserialport REQUIRED)
@@ -29,9 +30,11 @@ link_directories(${GTK_LIBRARY_DIRS})
 
 add_definitions(${GTK_CFLAGS_OTHER})
 
-add_executable(config ${ROLLERCOASTER_SOURCES})
+add_executable(rollercoaster ${ROLLERCOASTER_SOURCES})
+add_executable(config ${CONFIG_SOURCES})
 
 target_link_libraries(config ${OpenCV_LIBS} ${GTK_LIBRARIES} m serialport)
+target_link_libraries(rollercoaster ${OpenCV_LIBS} ${GTK_LIBRARIES} m serialport)
 
 #print_all_variables()
 configure_file(res/config.ui bin/config.ui COPYONLY)
