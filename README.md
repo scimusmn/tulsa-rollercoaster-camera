@@ -92,6 +92,12 @@ When the camera is triggered, it will turn the ROI box green (as well as run a t
 
 ![Triggered camera](img/08-triggered.png)
 
+You do not need to save your configurations; they will save automatically on closing the program.
+
+> **WARNING** Make sure to close the "Configure Cameras" window when exiting. Closing the "Terminal" window will kill the process before it has a chance to save your changes!
+
+> **WARNING II** The program only saves settings for the Track 1 & Track 2 cameras. If you haven't set a camera to control one of the tracks, its settings will **not** be saved.
+
 ## Building the programs
 
 Compiling requires cmake, GTK3, pkg-config, OpenCV, and libserialport. Clone the repository with `git clone https://github.com/scimusmn/tulsa-rollercoaster-camera.git`, and then type
@@ -122,7 +128,7 @@ and then change `./config` to `./rollercoaster`, and then `Ctrl-O Ctrl-X`.
 
 Finally, make the files executable by typing `chmod 740 ~/bin/*`. Now you can run `config` by simply opening a terminal and typing `config.sh`, and `rollercoaster` by typing `rollercoaster.sh`. (On a preinstalled system, these have also been added to the desktop as "Rollercoaster" and "Rollercoaster Configurator").
 
-**To add to `rollercoaster` to startup:** Press `Start` and type `startup`, and click on "Startup Applications Preferences". Click "Add", name it whatever you like, and then type into the "Command" line:
+**To add to `rollercoaster` to startup:** (Ubuntu) Press `Start` and type `startup`, and click on "Startup Applications Preferences". Click "Add", name it whatever you like, and then type into the "Command" line:
 
 ```
 gnome-terminal --command "rollercoaster.sh"
