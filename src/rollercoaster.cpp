@@ -85,9 +85,8 @@ int main(int argc, char** argv) {
   }
   
   // close track serial ports
-  char off = 'b';
-  sp_blocking_write(data.track1, &off, 1, 100);
-  sp_blocking_write(data.track2, &off, 1, 100);
+  sp_blocking_write(track1, &off, 1, 100);
+  sp_blocking_write(track2, &off, 1, 100);
   sp_close(track1);
   sp_close(track2);
   

@@ -257,7 +257,9 @@ int main(int argc, char** argv) {
   }
 
   // save settings
-  save_settings(&(data.settings), SETTINGS_FILE);
+  if (save_settings(&(data.settings), SETTINGS_FILE) == 1) {
+    cerr << "CRITICAL: failed to save settings!" << endl;
+  }
 
   // close track serial ports
   char off = 'b';
