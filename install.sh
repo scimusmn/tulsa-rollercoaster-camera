@@ -13,6 +13,8 @@ cmake .
 make
 
 #provide startup scripts
+mkdir $HOME/bin
+
 echo "cd $CAMERA_DIR/bin
 ./config" > $HOME/bin/config.sh
 
@@ -48,3 +50,13 @@ chmod 740 $HOME/Desktop/Coaster.desktop
 # set desktop shortcuts as trusted
 #gio set $HOME/Desktop/Configurator.desktop "metadata::trusted" yes
 #gio set $HOME/Desktop/Coaster.desktop "metadata::trusted" yes
+
+# add user to "dialout"
+SELF=`whoami`
+sudo usermod -a $SELF -G dialout
+
+echo ""
+echo "|---------------------------------------|"
+echo "| Installation complete; please reboot! |"
+echo "|---------------------------------------|"
+echo ""
