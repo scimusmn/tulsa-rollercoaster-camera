@@ -47,6 +47,10 @@ Icon=$CAMERA_DIR/bin/icon.png" > $HOME/Desktop/Coaster.desktop
 chmod 740 $HOME/Desktop/Configurator.desktop
 chmod 740 $HOME/Desktop/Coaster.desktop
 
+# add coaster to startup
+mkdir $HOME/.config/autostart
+cp $HOME/Desktop/Coaster.desktop $HOME/.config/autostart/
+
 # set desktop shortcuts as trusted
 #gio set $HOME/Desktop/Configurator.desktop "metadata::trusted" yes
 #gio set $HOME/Desktop/Coaster.desktop "metadata::trusted" yes
