@@ -2,7 +2,7 @@
 
 ## Overview
 
-This program is intended to run the solar coaster at the Tulsa Discovery Center. It uses OpenCV to identify when the cameras in the control turrets are directed at the coaster cars, and runs the track the car is sitting on when that happens.
+This program is intended to run the solar coaster at the Tulsa Discovery Lab. It uses OpenCV to identify when the cameras in the control turrets are directed at the coaster cars, and runs the track the car is sitting on when that happens.
 
 This is performed by color thresholding. When an image is taken from a camera, the image is converted to [HSV](https://en.wikipedia.org/wiki/HSL_and_HSV) and then thresholded with both minimum and maximum values for hue, saturation, and value. This produces a mask that, when the min/max HSV values are properly calibrated, should strip away most of the background elements, leaving only the rollercoaster car in the image. Erosion is applied to the mask to remove background elements, and then the mask is dilated to fill the foreground elements. Finally, the mask is checked in a specified region. If the percentage of active pixels in the region is between some minimum and maximum, the camera is considered "triggered" and the corresponding track is turned on. If the camera is not triggered, the track is turned off.
 
