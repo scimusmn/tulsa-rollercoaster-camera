@@ -15,6 +15,8 @@ This is performed by color thresholding. When an image is taken from a camera, t
 
 ![The HSV model, By SharkD CC BY-SA 3.0, https://commons.wikimedia.org/w/index.php?curid=9801673](img/HSV_model.png)
 
+*Image by SharkD, [CC-BY-SA-3.0](https://creativecommons.org/licenses/by-sa/3.0/deed.en)*
+
 - **Erosion:** An operation that reduces the size of solid white regions in an image. Erosion works by checking if each pixel has at least one black adjacent pixel; if it does, that pixel is set to black, and otherwise is unchanged. Erosion is used to remove small background elements.
 - **Dilation:** The opposite of erosion. If a pixel has a white neighbor, it is set to white, thereby increasing the area of solid white regions. Dilation is used to close holes in foreground elements.
 
