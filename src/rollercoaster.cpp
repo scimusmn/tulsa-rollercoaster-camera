@@ -10,66 +10,13 @@
 // io
 #include <iostream>
 
-// mutex
-#include <mutex>
-
 // web configuration
 #include "smmServer.hpp"
 
-// base64
-extern "C" {
-  #include "b64/base64.h"
-}
-
 // project headers
+#include "callbacks.hpp"
 #include "settings.h"
 #include "arduino_util.h"
-
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-struct globals {
-  rollercoaster_settings settings;
-  double image_quality;
-
-  cv::Mat camera1_frame;
-  cv::Mat camera2_frame;
-  cv::Mat camera1_mask;
-  cv::Mat camera2_mask;
-
-  std::mutex camera1_frame_mtx;
-  std::mutex camera2_frame_mtx;
-  std::mutex camera1_mask_mtx;
-  std::mutex camera2_mask_mtx;
-
-
-  bool track1_run;
-  bool track2_run;
-};
-
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-#define SETTINGS_FILE "rollercoaster-settings.yaml"
-
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-// server GET callbacks
-void serve_camera1_settings(httpMessage message, void* data);
-void serve_camera2_settings(httpMessage message, void* data);
-void serve_camera1_frame(httpMessage message, void* data);
-void serve_camera2_frame(httpMessage message, void* data);
-void serve_camera1_mask(httpMessage message, void* data);
-void serve_camera2_mask(httpMessage message, void* data);
-
-// server POST callbacks
-void save_settings(httpMessage message, void* data);
-void set_camera1_settings(httpMessage message, void* data);
-void set_camera2_settings(httpMessage message, void* data);
-
-// utility functions
-bool open_tracks(struct sp_port** track1, struct sp_port** track2);
-cv::Mat get_mask(cv::Mat& frame, camera_settings s);
-bool triggered(cv::Mat mask, camera_settings settings);
-void serve_image(cv::Mat image, httpMessage& m);
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -80,6 +27,10 @@ int main(int argc, char** argv) {
 
   g.track1_run = false;   // do not run track 1 at start
   g.track2_run = false;   // do not run track 2 at start
+  g.track1_running = false;
+  g.track2_running = false;
+
+  g.settings_file = "rollercoaster-settings.yaml";
   
   /*struct sp_port* track1; // arduino port for track 1
     struct sp_port* track2; // arduino port for track 2*/
@@ -109,8 +60,8 @@ int main(int argc, char** argv) {
     }*/
 
   // load camera settings
-  if( load_settings(&g.settings, SETTINGS_FILE) != 0 ) {
-    std::cerr << "WARNING: could not find '" << SETTINGS_FILE << "', using default values" << std::endl;
+  if( load_settings(&g.settings, g.settings_file) != 0 ) {
+    std::cerr << "WARNING: could not find '" << g.settings_file << "', using default values" << std::endl;
     set_default(&g.settings);
   }
 
@@ -129,6 +80,7 @@ int main(int argc, char** argv) {
 
   // launch configuration server
   server.launch();
+  std::cout << "Server launched on port 8000" << std::endl;
 
   char run = 'a';
   char off = 'b';
@@ -233,22 +185,6 @@ bool triggered(cv::Mat mask, camera_settings settings) {
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-void serve_image(cv::Mat image, httpMessage& m) {
-  // get raw JPEG bytes from frame
-  std::vector<unsigned char> rawJpegBuffer;
-  cv::imencode(".jpeg", image, rawJpegBuffer);
-
-  // convert to base64
-  unsigned int bufferSize = b64e_size(rawJpegBuffer.size())+1;
-  unsigned char* b64JpegBuffer = (unsigned char*) malloc(bufferSize * sizeof(unsigned char));
-  b64_encode(rawJpegBuffer.data(), rawJpegBuffer.size(), b64JpegBuffer);
-  
-  m.replyHttpContent("image/jpeg", std::string((char*) b64JpegBuffer, bufferSize));
-  free(b64JpegBuffer);
-}
-
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 bool open_tracks(struct sp_port** track1, struct sp_port** track2) {
   // find tracks
   enum sp_return err;
@@ -349,257 +285,10 @@ bool open_tracks(struct sp_port** track1, struct sp_port** track2) {
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-void serve_camera1_settings(httpMessage message, void* data) {
-  struct globals* g = (struct globals*) data;
-
-  std::string buffer = "{";
-  buffer += "\"h_max\":";
-  buffer += std::to_string(g->settings.camera1_settings.h_max);
-  buffer += ",\"h_min\":";   
-  buffer += std::to_string(g->settings.camera1_settings.h_min);
-  buffer += ",\"s_max\":";   
-  buffer += std::to_string(g->settings.camera1_settings.s_max);
-  buffer += ",\"s_min\":";   
-  buffer += std::to_string(g->settings.camera1_settings.s_min);
-  buffer += ",\"v_max\":";   
-  buffer += std::to_string(g->settings.camera1_settings.v_max);
-  buffer += ",\"v_min\":";   
-  buffer += std::to_string(g->settings.camera1_settings.v_min);
-  buffer += ",\"erosions\":";
-  buffer += std::to_string(g->settings.camera1_settings.erosions);
-  buffer += ",\"dilations\":";
-  buffer += std::to_string(g->settings.camera1_settings.dilations);
-  buffer += ",\"width\":";
-  buffer += std::to_string(g->settings.camera1_settings.width);
-  buffer += ",\"height\":";
-  buffer += std::to_string(g->settings.camera1_settings.height);
-  buffer += ",\"x_offset\":";
-  buffer += std::to_string(g->settings.camera1_settings.x_offset);
-  buffer += ",\"y_offset\":";
-  buffer += std::to_string(g->settings.camera1_settings.y_offset);
-  buffer += ",\"percent_min\":";
-  buffer += std::to_string(g->settings.camera1_settings.percent_min);
-  buffer += ",\"percent_max\":";
-  buffer += std::to_string(g->settings.camera1_settings.percent_max);
-  buffer += "}";
-  
-  message.replyHttpContent("text/plain", buffer);
-}
-
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-void serve_camera2_settings(httpMessage message, void* data) {
-  struct globals* g = (struct globals*) data;
-
-  std::string buffer = "{";
-  buffer += "\"h_max\":";
-  buffer += std::to_string(g->settings.camera2_settings.h_max);
-  buffer += ",\"h_min\":";   
-  buffer += std::to_string(g->settings.camera2_settings.h_min);
-  buffer += ",\"s_max\":";   
-  buffer += std::to_string(g->settings.camera2_settings.s_max);
-  buffer += ",\"s_min\":";   
-  buffer += std::to_string(g->settings.camera2_settings.s_min);
-  buffer += ",\"v_max\":";   
-  buffer += std::to_string(g->settings.camera2_settings.v_max);
-  buffer += ",\"v_min\":";   
-  buffer += std::to_string(g->settings.camera2_settings.v_min);
-  buffer += ",\"erosions\":";
-  buffer += std::to_string(g->settings.camera2_settings.erosions);
-  buffer += ",\"dilations\":";
-  buffer += std::to_string(g->settings.camera2_settings.dilations);
-  buffer += ",\"width\":";
-  buffer += std::to_string(g->settings.camera2_settings.width);
-  buffer += ",\"height\":";
-  buffer += std::to_string(g->settings.camera2_settings.height);
-  buffer += ",\"x_offset\":";
-  buffer += std::to_string(g->settings.camera2_settings.x_offset);
-  buffer += ",\"y_offset\":";
-  buffer += std::to_string(g->settings.camera2_settings.y_offset);
-  buffer += ",\"percent_min\":";
-  buffer += std::to_string(g->settings.camera2_settings.percent_min);
-  buffer += ",\"percent_max\":";
-  buffer += std::to_string(g->settings.camera2_settings.percent_max);
-  buffer += "}";
-  
-  message.replyHttpContent("text/plain", buffer);
-}
-
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-void serve_camera1_frame(httpMessage message, void* data) {
-  struct globals* g = (struct globals*) data;
-  cv::Mat image;
-  bool ok = false;
-
-  g->camera1_frame_mtx.lock();
-  if (!g->camera1_frame.empty()) {
-    cv::resize(g->camera1_frame, image, cv::Size(), g->image_quality, g->image_quality);
-    ok = true;
-  }
-  g->camera1_frame_mtx.unlock();
-
-  if (ok) {
-    serve_image(image, message);
-  }
-  else {
-    message.replyHttpError(503, "image not yet loaded");
-  }
-}
-
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-
-void serve_camera2_frame(httpMessage message, void* data) {
-  struct globals* g = (struct globals*) data;
-  cv::Mat image;
-  bool ok = false;
-
-  g->camera2_frame_mtx.lock();
-  if (!g->camera2_frame.empty()) {
-    cv::resize(g->camera2_frame, image, cv::Size(), g->image_quality, g->image_quality);
-    ok = true;
-  }
-  g->camera2_frame_mtx.unlock();
-
-  if (ok) {
-    serve_image(image, message);
-  }
-  else {
-    message.replyHttpError(503, "image not yet loaded");
-  }
-}
-
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-void serve_camera1_mask(httpMessage message, void* data) {
-  struct globals* g = (struct globals*) data;
-  cv::Mat image;
-  bool ok = false;
-
-  g->camera1_mask_mtx.lock();
-  if (!g->camera1_mask.empty()) {
-    cv::resize(g->camera1_mask, image, cv::Size(), g->image_quality, g->image_quality);
-    ok = true;
-  }
-  g->camera1_mask_mtx.unlock();
-
-  if (ok) {
-    serve_image(image, message);
-  }
-  else {
-    message.replyHttpError(503, "image not yet loaded");
-  }
-}
-
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-void serve_camera2_mask(httpMessage message, void* data) {
-  struct globals* g = (struct globals*) data;
-  cv::Mat image;
-  bool ok = false;
-
-  g->camera2_mask_mtx.lock();
-  if (!g->camera2_mask.empty()) {
-    cv::resize(g->camera2_mask, image, cv::Size(), g->image_quality, g->image_quality);
-    ok = true;
-  }
-  g->camera2_mask_mtx.unlock();
-
-  if (ok) {
-    serve_image(image, message);
-  }
-  else {
-    message.replyHttpError(503, "image not yet loaded");
-  }
-}
-
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-void save_settings(httpMessage message, void* data) {
-  struct globals* g = (struct globals*) data;
-
-  if (save_settings(&g->settings, SETTINGS_FILE) != 0) {
-    std::cerr << "WARNING: failed to save settings" << std::endl;
-    message.replyHttpError(500,"Failed to save settings");
-  }
-  else {
-    std::cout << "saved.\n";
-    message.replyHttpOk();
-  }
-}
-
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  
-void set_camera1_settings(httpMessage message, void* data) {
-  struct globals* g = (struct globals*) data;
-
-  camera_settings settings;
-  try {
-    settings.h_max         = std::stoi(message.getHttpVariable("h_max"));
-    settings.s_max         = std::stoi(message.getHttpVariable("s_max"));
-    settings.v_max         = std::stoi(message.getHttpVariable("v_max"));
-    settings.h_min         = std::stoi(message.getHttpVariable("h_min"));   
-    settings.s_min         = std::stoi(message.getHttpVariable("s_min"));   
-    settings.v_min         = std::stoi(message.getHttpVariable("v_min"));   
-    settings.erosions      = std::stoi(message.getHttpVariable("erosions"));   
-    settings.dilations     = std::stoi(message.getHttpVariable("dilations"));
-    settings.width         = std::stoi(message.getHttpVariable("width"));
-    settings.height        = std::stoi(message.getHttpVariable("height"));
-    settings.x_offset      = std::stoi(message.getHttpVariable("x_offset"));
-    settings.y_offset      = std::stoi(message.getHttpVariable("y_offset"));
-    settings.percent_min   = std::stoi(message.getHttpVariable("percent_min"));
-    settings.percent_max   = std::stoi(message.getHttpVariable("percent_max"));
-  }
-  catch(std::invalid_argument error) {
-    std::cerr << "error: invalid argument encountered in set_camera1_settings()" << std::endl;
-    message.replyHttpError(422,"Invalid number");
-    return;
-  }
-  
-  g->settings.camera1_settings = settings;
-
-  message.replyHttpOk();
-}
-
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-void set_camera2_settings(httpMessage message, void* data) {
-  struct globals* g = (struct globals*) data;
-
-  camera_settings settings;
-  try {
-    settings.h_max         = std::stoi(message.getHttpVariable("h_max"));
-    settings.s_max         = std::stoi(message.getHttpVariable("s_max"));
-    settings.v_max         = std::stoi(message.getHttpVariable("v_max"));
-    settings.h_min         = std::stoi(message.getHttpVariable("h_min"));   
-    settings.s_min         = std::stoi(message.getHttpVariable("s_min"));   
-    settings.v_min         = std::stoi(message.getHttpVariable("v_min"));   
-    settings.erosions      = std::stoi(message.getHttpVariable("erosions"));   
-    settings.dilations     = std::stoi(message.getHttpVariable("dilations"));
-    settings.width         = std::stoi(message.getHttpVariable("width"));
-    settings.height        = std::stoi(message.getHttpVariable("height"));
-    settings.x_offset      = std::stoi(message.getHttpVariable("x_offset"));
-    settings.y_offset      = std::stoi(message.getHttpVariable("y_offset"));
-    settings.percent_min   = std::stoi(message.getHttpVariable("percent_min"));
-    settings.percent_max   = std::stoi(message.getHttpVariable("percent_max"));
-  }
-  catch(std::invalid_argument error) {
-    std::cerr << "error: invalid argument encountered in set_camera2_settings()" << std::endl;
-    message.replyHttpError(422,"Invalid number");
-    return;
-  }
-  
-  g->settings.camera2_settings = settings;
-
-  message.replyHttpOk();
-}  
-
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 /*                        ,d88b.d88b,
                           88888888888
                           `Y8888888Y'
                             `Y888Y'
                               `Y'                                */
 
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
