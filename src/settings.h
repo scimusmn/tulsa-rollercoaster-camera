@@ -1,7 +1,6 @@
 #ifndef INCLUDE_SETTINGS_H
 #define INCLUDE_SETTINGS_H
 
-#include <gtk/gtk.h>
 #include <string>
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -30,43 +29,11 @@ typedef struct {
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 typedef struct {
-  GtkToggleButton* camera1_check;
-  GtkToggleButton* camera2_check;
-  GtkButton* track1_but;
-  GtkButton* track2_but;
-
-  GtkHScale* h_min_scale;
-  GtkHScale* s_min_scale;
-  GtkHScale* v_min_scale;
-  GtkHScale* h_max_scale;
-  GtkHScale* s_max_scale;
-  GtkHScale* v_max_scale;
-
-  GtkSpinButton* erode_spin;
-  GtkSpinButton* dilate_spin;
-
-  GtkSpinButton* width_spin;
-  GtkSpinButton* height_spin;
-  GtkSpinButton* x_spin;
-  GtkSpinButton* y_spin;
-  
-  GtkHScale* percent_min_scale;
-  GtkHScale* percent_max_scale;
-} settings_widgets;
-
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-typedef struct {
   int camera1_id;
   int camera2_id;
   camera_settings camera1_settings;
   camera_settings camera2_settings;
 } rollercoaster_settings;
-
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-void update_widgets_from_settings(void* data);
-void update_settings_from_widgets(void* data);
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

@@ -1,57 +1,69 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-let ballSettings = {};
-let bgSettings   = {};
+let track1_settings = {};
+let track2_settings = {};
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 function save() {
-  data = { callback: 'saveSettings' };
+  data = { callback: 'save_settings' };
   $.post('/post',data);
 }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-function updateBallSettings() {
-  let [ hueMin, hueMax ] = $('#ballHueRange').val().split(';');
-  let [ satMin, satMax ] = $('#ballSatRange').val().split(',');
-  let [ valMin, valMax ] = $('#ballValRange').val().split(',');
-  let erosions = $('#ballErosions').val();
-  let dilations = $('#ballDilations').val();
+function update_track1_settings() {
+  let [ h_min, h_max ] = $('#track1-hue-range').val().split(';');
+  let [ s_min, s_max ] = $('#track1-sat-range').val().split(',');
+  let [ v_min, v_max ] = $('#track1-val-range').val().split(',');
+  let erosions = $('#track1-erosions').val();
+  let dilations = $('#track1-dilations').val();
 
   let data = {
-    callback: 'setBallSettings',
-    hueMin,
-    hueMax,
-    satMin,
-    satMax,
-    valMin,
-    valMax,
+    callback: 'set_camera1_settings',
+    h_min,
+    h_max,
+    s_min,
+    s_max,
+    v_min,
+    v_max,
     erosions,
     dilations,
+    width: 64,
+    height: 64,
+    x_offset: 16,
+    y_offset: 16,
+    percent_min: 100,
+    percent_max: 0,
   };
   $.post('/post', data);
 }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-function updateBgSettings() {
-  let [ hueMin, hueMax ] = $('#bgHueRange').val().split(';');
-  let [ satMin, satMax ] = $('#bgSatRange').val().split(',');
-  let [ valMin, valMax ] = $('#bgValRange').val().split(',');
-  let erosions = $('#bgErosions').val();
-  let dilations = $('#bgDilations').val();
+function update_track2_settings() {
+  let [ h_min, h_max ] = $('#track2-hue-range').val().split(';');
+  let [ s_min, s_max ] = $('#track2-sat-range').val().split(',');
+  let [ v_min, v_max ] = $('#track2-val-range').val().split(',');
+  let erosions = $('#track2-erosions').val();
+  let dilations = $('#track2-dilations').val();
 
   let data = {
-    callback: 'setBgSettings',
-    hueMin,
-    hueMax,
-    satMin,
-    satMax,
-    valMin,
-    valMax,
+    callback: 'set_camera2_settings',
+    h_min,
+    h_max,
+    s_min,
+    s_max,
+    v_min,
+    v_max,
     erosions,
     dilations,
+    width: 64,
+    height: 64,
+    x_offset: 16,
+    y_offset: 16,
+    percent_min: 100,
+    percent_max: 0,    
   };
   $.post('/post', data);
 }
@@ -59,25 +71,25 @@ function updateBgSettings() {
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 $(document).ready(function() {
-  $.get('/get/ballSettings', function(data, status) {
+  $.get('/get/camera1_settings', function(data, status) {
     if (status === 'success') {
-      ballSettings = JSON.parse(data);
-      $('#ballHueRange').val(`${ballSettings.hueMin};${ballSettings.hueMax}`).trigger('change');
-      $('#ballSatRange').jRange('setValue',`${ballSettings.satMin},${ballSettings.satMax}`);
-      $('#ballValRange').jRange('setValue',`${ballSettings.valMin},${ballSettings.valMax}`);
-      $('#ballErosions').val(ballSettings.erosions);
-      $('#ballDilations').val(ballSettings.dilations);            
+      track1_settings = JSON.parse(data);
+      $('#track1-hue-range').val(`${track1_settings.h_min};${track1_settings.h_max}`).trigger('change');
+      $('#track1-sat-range').jRange('setValue',`${track1_settings.s_min},${track1_settings.s_max}`);
+      $('#track1-val-range').jRange('setValue',`${track1_settings.v_min},${track1_settings.v_max}`);
+      $('#track1-erosions').val(track1_settings.erosions);
+      $('#track1-dilations').val(track1_settings.dilations);            
     }
   });
 
-  $.get('/get/bgSettings', function(data, status) {
+  $.get('/get/camera2_settings', function(data, status) {
     if (status === 'success') {
-      bgSettings = JSON.parse(data);
-      $('#bgHueRange').val(`${bgSettings.hueMin};${bgSettings.hueMax}`).trigger('change');
-      $('#bgSatRange').jRange('setValue',`${bgSettings.satMin},${bgSettings.satMax}`);
-      $('#bgValRange').jRange('setValue',`${bgSettings.valMin},${bgSettings.valMax}`);
-      $('#bgErosions').val(bgSettings.erosions);
-      $('#bgDilations').val(bgSettings.dilations);
+      track2_settings = JSON.parse(data);
+      $('#track2-hue-range').val(`${track2_settings.h_min};${track2_settings.h_max}`).trigger('change');
+      $('#track2-sat-range').jRange('setValue',`${track2_settings.s_min},${track2_settings.s_max}`);
+      $('#track2-val-range').jRange('setValue',`${track2_settings.v_min},${track2_settings.v_max}`);
+      $('#track2-erosions').val(track2_settings.erosions);
+      $('#track2-dilations').val(track2_settings.dilations);            
     }
   });
 
@@ -99,29 +111,34 @@ $(document).ready(function() {
     ],
   });
 
-  $('#ballHueRange').on('change',updateBallSettings);
-  $('#ballSatRange').on('change',updateBallSettings);
-  $('#ballValRange').on('change',updateBallSettings);
-  $('#ballErosions').siblings('button').on('click',updateBallSettings);
-  $('#ballDilations').siblings('button').on('click',updateBallSettings);  
+  $('#track1-hue-range').on('change',update_track1_settings);
+  $('#track1-sat-range').on('change',update_track1_settings);
+  $('#track1-val-range').on('change',update_track1_settings);
+  $('#track1-erosions').siblings('button').on('click',update_track1_settings);
+  $('#track1-dilations').siblings('button').on('click',update_track1_settings);  
 
-  $('#bgHueRange').on('change',updateBgSettings);
-  $('#bgSatRange').on('change',updateBgSettings);
-  $('#bgValRange').on('change',updateBgSettings);
-  $('#bgErosions').siblings('button').on('click',updateBgSettings);
-  $('#bgDilations').siblings('button').on('click',updateBgSettings);  
-  
+  $('#track2-hue-range').on('change',update_track2_settings);
+  $('#track2-sat-range').on('change',update_track2_settings);
+  $('#track2-val-range').on('change',update_track2_settings);
+  $('#track2-erosions').siblings('button').on('click',update_track2_settings);
+  $('#track2-dilations').siblings('button').on('click',update_track2_settings);  
 
   window.setInterval( function() {
-    $.get('/get/cameraImage',function(data, status) {
-      $('#cameraImage').attr('src',`data:image/jpeg;base64,${data}`);
+    $.get('/get/camera1_frame',function(data, status) {
+      $('#track1-frame').attr('src',`data:image/jpeg;base64,${data}`);
     });
-    $.get('/get/ballMask',function(data, status) {
-      $('#ballMaskImage').attr('src',`data:image/jpeg;base64,${data}`);
+    $.get('/get/camera1_mask',function(data, status) {
+      $('#track1-mask').attr('src',`data:image/jpeg;base64,${data}`);
     });
-    $.get('/get/bgMask',function(data, status) {
-      $('#bgMaskImage').attr('src',`data:image/jpeg;base64,${data}`);
+
+    $.get('/get/camera2_frame',function(data, status) {
+      $('#track2-frame').attr('src',`data:image/jpeg;base64,${data}`);
     });
+    $.get('/get/camera2_mask',function(data, status) {
+      $('#track2-mask').attr('src',`data:image/jpeg;base64,${data}`);
+    });
+
+
   }, 100);
 });
 
