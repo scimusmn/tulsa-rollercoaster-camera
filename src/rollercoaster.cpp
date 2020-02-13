@@ -28,13 +28,20 @@ extern "C" {
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 struct globals {
-  std::mutex access;
   rollercoaster_settings settings;
   double image_quality;
+
   cv::Mat camera1_frame;
   cv::Mat camera2_frame;
   cv::Mat camera1_mask;
   cv::Mat camera2_mask;
+
+  std::mutex camera1_frame_mtx;
+  std::mutex camera2_frame_mtx;
+  std::mutex camera1_mask_mtx;
+  std::mutex camera2_mask_mtx;
+
+
   bool track1_run;
   bool track2_run;
 };
@@ -128,14 +135,22 @@ int main(int argc, char** argv) {
   
   while(server.isRunning()) {
 
-    g.access.lock();
+    g.camera1_frame_mtx.lock();
     camera1 >> g.camera1_frame;
+    g.camera1_frame_mtx.unlock();
+
+    g.camera2_frame_mtx.lock();
     camera2 >> g.camera2_frame;
+    g.camera2_frame_mtx.unlock();
 
+    g.camera1_mask_mtx.lock();
     g.camera1_mask = get_mask(g.camera1_frame, g.settings.camera1_settings);
+    g.camera1_mask_mtx.unlock();
+    
+    g.camera2_mask_mtx.lock();
     g.camera2_mask = get_mask(g.camera2_frame, g.settings.camera2_settings);
-    g.access.unlock();
-
+    g.camera2_mask_mtx.unlock();
+    
     // set run/stop on track 1
     if ( triggered(g.camera1_mask, g.settings.camera1_settings) || g.track1_run ) {
       //sp_blocking_write(track1, &run, 1, 100);
@@ -337,8 +352,6 @@ bool open_tracks(struct sp_port** track1, struct sp_port** track2) {
 void serve_camera1_settings(httpMessage message, void* data) {
   struct globals* g = (struct globals*) data;
 
-  g->access.lock();
-  
   std::string buffer = "{";
   buffer += "\"h_max\":";
   buffer += std::to_string(g->settings.camera1_settings.h_max);
@@ -371,7 +384,6 @@ void serve_camera1_settings(httpMessage message, void* data) {
   buffer += "}";
   
   message.replyHttpContent("text/plain", buffer);
-  g->access.unlock();
 }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -379,8 +391,6 @@ void serve_camera1_settings(httpMessage message, void* data) {
 void serve_camera2_settings(httpMessage message, void* data) {
   struct globals* g = (struct globals*) data;
 
-  g->access.lock();
-  
   std::string buffer = "{";
   buffer += "\"h_max\":";
   buffer += std::to_string(g->settings.camera2_settings.h_max);
@@ -413,7 +423,6 @@ void serve_camera2_settings(httpMessage message, void* data) {
   buffer += "}";
   
   message.replyHttpContent("text/plain", buffer);
-  g->access.unlock();
 }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -423,12 +432,12 @@ void serve_camera1_frame(httpMessage message, void* data) {
   cv::Mat image;
   bool ok = false;
 
-  g->access.lock();
+  g->camera1_frame_mtx.lock();
   if (!g->camera1_frame.empty()) {
     cv::resize(g->camera1_frame, image, cv::Size(), g->image_quality, g->image_quality);
     ok = true;
   }
-  g->access.unlock();
+  g->camera1_frame_mtx.unlock();
 
   if (ok) {
     serve_image(image, message);
@@ -446,12 +455,12 @@ void serve_camera2_frame(httpMessage message, void* data) {
   cv::Mat image;
   bool ok = false;
 
-  g->access.lock();
+  g->camera2_frame_mtx.lock();
   if (!g->camera2_frame.empty()) {
     cv::resize(g->camera2_frame, image, cv::Size(), g->image_quality, g->image_quality);
     ok = true;
   }
-  g->access.unlock();
+  g->camera2_frame_mtx.unlock();
 
   if (ok) {
     serve_image(image, message);
@@ -468,12 +477,12 @@ void serve_camera1_mask(httpMessage message, void* data) {
   cv::Mat image;
   bool ok = false;
 
-  g->access.lock();
+  g->camera1_mask_mtx.lock();
   if (!g->camera1_mask.empty()) {
     cv::resize(g->camera1_mask, image, cv::Size(), g->image_quality, g->image_quality);
     ok = true;
   }
-  g->access.unlock();
+  g->camera1_mask_mtx.unlock();
 
   if (ok) {
     serve_image(image, message);
@@ -490,12 +499,12 @@ void serve_camera2_mask(httpMessage message, void* data) {
   cv::Mat image;
   bool ok = false;
 
-  g->access.lock();
+  g->camera2_mask_mtx.lock();
   if (!g->camera2_mask.empty()) {
     cv::resize(g->camera2_mask, image, cv::Size(), g->image_quality, g->image_quality);
     ok = true;
   }
-  g->access.unlock();
+  g->camera2_mask_mtx.unlock();
 
   if (ok) {
     serve_image(image, message);
@@ -510,7 +519,6 @@ void serve_camera2_mask(httpMessage message, void* data) {
 void save_settings(httpMessage message, void* data) {
   struct globals* g = (struct globals*) data;
 
-  g->access.lock();
   if (save_settings(&g->settings, SETTINGS_FILE) != 0) {
     std::cerr << "WARNING: failed to save settings" << std::endl;
     message.replyHttpError(500,"Failed to save settings");
@@ -519,7 +527,6 @@ void save_settings(httpMessage message, void* data) {
     std::cout << "saved.\n";
     message.replyHttpOk();
   }
-  g->access.unlock();
 }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -550,9 +557,7 @@ void set_camera1_settings(httpMessage message, void* data) {
     return;
   }
   
-  g->access.lock();
   g->settings.camera1_settings = settings;
-  g->access.unlock();
 
   message.replyHttpOk();
 }
@@ -585,9 +590,7 @@ void set_camera2_settings(httpMessage message, void* data) {
     return;
   }
   
-  g->access.lock();
   g->settings.camera2_settings = settings;
-  g->access.unlock();
 
   message.replyHttpOk();
 }  
