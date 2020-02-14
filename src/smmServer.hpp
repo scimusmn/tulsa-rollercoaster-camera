@@ -108,6 +108,9 @@ private:
   std::unordered_map<std::string, callback_t> postCallbackMap;
   std::unordered_map<std::string, callback_t>  getCallbackMap;
 
+  std::string port;
+  std::string root;
+
   std::mutex postCallbackMutex;
   std::mutex  getCallbackMutex;
   
