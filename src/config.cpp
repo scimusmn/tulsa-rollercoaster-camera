@@ -13,6 +13,7 @@
 #include "settings.h"
 #include "processing.h"
 #include "logging.h"
+#include "arduino_util.h"
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -50,7 +51,8 @@ static void update_settings(struct camera_settings_t *s,
 
 static int loop(cv::VideoCapture& camera,
 		struct camera_settings_t& settings,
-		struct widgets_t& widgets);
+		struct widgets_t& widgets,
+		struct sp_port *arduino);
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -58,6 +60,7 @@ int main(int argc, char** argv) {
    // parse command line options
    parse_options(argc, argv);
    log_msg(INFO, "log level: %s", level_string(log_level));
+   log_msg(INFO, "libserialport version %s", sp_get_package_version_string());
 
    // load settings
    log_msg(DEBUG, "loading settings from '%s'", SETTINGS_FILE);
@@ -84,6 +87,10 @@ int main(int argc, char** argv) {
 	   settings.roi.x_offset, settings.roi.y_offset,
 	   settings.roi.percent_min, settings.roi.percent_max);
 
+   std::chrono::duration<int> save_interval(SAVE_INTERVAL);
+   std::chrono::steady_clock::time_point last_save = std::chrono::steady_clock::now();
+
+   // open camera
    log_msg(DEBUG, "opening camera");
    cv::VideoCapture camera(0);
    if (!camera.isOpened()) {
@@ -91,9 +98,7 @@ int main(int argc, char** argv) {
       return 1;
    }
 
-   std::chrono::duration<int> save_interval(SAVE_INTERVAL);
-   std::chrono::steady_clock::time_point last_save = std::chrono::steady_clock::now();
-
+   // construct widgets window
    log_msg(DEBUG, "building GTK window");
    struct widgets_t widgets;
    error = build_config_window(UI_FILE, &widgets, settings);
@@ -102,8 +107,37 @@ int main(int argc, char** argv) {
       return 1;
    }
 
+   // open arduino
+   log_msg(DEBUG, "opening serial port");
+   struct sp_port *arduino;
+   error = find_metro_mini(&arduino);
+   if (error) {
+      log_msg(FATAL, "could not find Metro Mini");
+      return 1;
+   }
+   log_msg(DEBUG, "found Metro Mini at '%s'", sp_get_port_name(arduino));
+
+   enum sp_return err = sp_open(arduino, SP_MODE_READ_WRITE);
+   if (err != SP_OK) {
+      char *last_error = sp_last_error_message();
+      log_msg(FATAL, "could not open Metro Mini: %s", last_error);
+      sp_free_error_message(last_error);
+      sp_free_port(arduino);
+      return 1;
+   }
+
+   error = set_arduino_config(arduino, 9600);
+   if (error) {
+      log_msg(FATAL, "could not configure Metro Mini");
+      sp_close(arduino);
+      sp_free_port(arduino);
+      return 1;
+   }
+   show_config(arduino);
+
+   // run main loop
    log_msg(DEBUG, "entering main loop");
-   while (loop(camera, settings, widgets) != 1) {
+   while (loop(camera, settings, widgets, arduino) != 1) {
       if (std::chrono::steady_clock::now() - last_save > save_interval) {
 	 log_msg(INFO, "saving settings");
 	 save_settings(settings, SETTINGS_FILE);
@@ -111,6 +145,10 @@ int main(int argc, char** argv) {
       }
    }
 
+   // finish up
+   sp_close(arduino);
+   sp_free_port(arduino);
+   
    log_msg(INFO, "saving settings");
    save_settings(settings, SETTINGS_FILE);
    return 0;
@@ -120,21 +158,42 @@ int main(int argc, char** argv) {
 
 static int loop(cv::VideoCapture& camera,
 		struct camera_settings_t& settings,
-		struct widgets_t& widgets)
+		struct widgets_t& widgets,
+		struct sp_port *arduino)
 {
+   log_msg(TRACE, "loop(): update settings");
    update_settings(&settings, &widgets);
+
+   log_msg(TRACE, "loop(): load frame");
    cv::Mat frame, mask;
    camera >> frame;
+
+   log_msg(TRACE, "loop(): compute mask");
    build_mask(mask, frame, settings.mask);
 
+   log_msg(TRACE, "loop(): check triggering");
    bool triggered = region_triggered(mask, settings.roi);
    draw_window(frame, settings.roi, triggered);
-      
+
+   if (triggered) {
+      log_msg(TRACE, "loop(): run track");
+      const char run = 'a';
+      sp_blocking_write(arduino, &run, 1, 100);
+   }
+   else {
+      log_msg(TRACE, "loop(): stop track");
+      const char stop = 'b';
+      sp_blocking_write(arduino, &stop, 1, 100);
+   }
+
+   log_msg(TRACE, "loop(): display mats");
    cv::imshow("Frame", frame);
    cv::imshow("Mask", mask);
 
    if (cv::waitKey(10) == 27) // esc pressed
       return 1;
+
+   log_msg(TRACE, "loop(): done");
    return 0;
 }
 
@@ -142,8 +201,7 @@ static int loop(cv::VideoCapture& camera,
 
 void update_settings(struct camera_settings_t *s, struct widgets_t *widgets)
 {
-   log_msg(TRACE, "begin update_settings()");
-
+   log_msg(TRACE, "update_settings(): get mask settings");
    s->mask.hue.min        = (int) gtk_range_get_value(GTK_RANGE(widgets->h_min_scale));
    s->mask.hue.max        = (int) gtk_range_get_value(GTK_RANGE(widgets->h_max_scale));     
    s->mask.saturation.min = (int) gtk_range_get_value(GTK_RANGE(widgets->s_min_scale));     
@@ -152,14 +210,15 @@ void update_settings(struct camera_settings_t *s, struct widgets_t *widgets)
    s->mask.value.max      = (int) gtk_range_get_value(GTK_RANGE(widgets->v_max_scale));
    s->mask.erosions       = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(widgets->erode_spin));
    s->mask.dilations      = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(widgets->dilate_spin));
-   
+
+   log_msg(TRACE, "update_settings(): get roi settings");
    s->roi.width      = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(widgets->width_spin));
    s->roi.height     = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(widgets->height_spin));
    s->roi.x_offset   = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(widgets->x_spin));
    s->roi.y_offset   = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(widgets->y_spin));
    s->roi.percent_min = (int) gtk_range_get_value(GTK_RANGE(widgets->percent_min_scale));
    s->roi.percent_max = (int) gtk_range_get_value(GTK_RANGE(widgets->percent_max_scale));
-   log_msg(TRACE, "finish update_settings()");
+   log_msg(TRACE, "update_settings(): done");
 }
 
 int build_config_window(std::string ui_file, struct widgets_t *widgets, struct camera_settings_t s)

@@ -3,11 +3,14 @@
 #ifndef INCLUDE_ARDUINO_UTIL_H
 #define INCLUDE_ARDUINO_UTIL_H
 
+#define METRO_MINI_VID 0x10c4
+#define METRO_MINI_PID 0xea60
+
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-enum sp_return show_config(struct sp_port* port);
-enum sp_return set_arduino_config(struct sp_port* port, int baudrate);
-enum sp_return enumerate_ports(struct sp_port*** ports, int* n_ports); 
+int show_config(struct sp_port *port);
+int set_arduino_config(struct sp_port *port, int baudrate);
+int find_metro_mini(struct sp_port **port);
 void print_error(enum sp_return err);
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

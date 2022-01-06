@@ -1,10 +1,28 @@
 #include <libserialport.h>
 #include <stdio.h>
 #include "arduino_util.h"
+#include "logging.h"
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-enum sp_return show_config(struct sp_port* port) {
+#define CHECK_ERR()					\
+   do {							\
+      if (err != SP_OK) {				\
+	 char *last_error = sp_last_error_message();	\
+	 log_msg(ERROR, "(%s:%d) %s", __FILE__, __LINE__, last_error);	\
+	 sp_free_error_message(last_error);		\
+	 return 1;					\
+      }							\
+   } while(0)
+
+static const char* parity(enum sp_parity p);
+static const char* rts(enum sp_rts r);
+static const char* cts(enum sp_cts c);
+static const char* dtr(enum sp_dtr d);
+static const char* dsr(enum sp_dsr d);
+static const char* xon_xoff(enum sp_xonxoff x);
+
+int show_config(struct sp_port* port) {
   enum sp_return err;
 
   // load port configuration
@@ -15,290 +33,207 @@ enum sp_return show_config(struct sp_port* port) {
   // get configuration variables
   int baudrate;
   int bits;
-  enum sp_parity parity;
+  enum sp_parity p;
   int stop_bits;
-  enum sp_rts rts;
-  enum sp_cts cts;
-  enum sp_dtr dtr;
-  enum sp_dsr dsr;
-  enum sp_xonxoff xon_xoff;
+  enum sp_rts r;
+  enum sp_cts c;
+  enum sp_dtr dt;
+  enum sp_dsr ds;
+  enum sp_xonxoff x;
 
   err = sp_get_config_baudrate(config, &baudrate);
-  if ( err != SP_OK ) {
-    printf("error encountered in getting baudrate\n");
-    print_error(err);
-    return err;
-  }
-  
-  sp_get_config_bits    (config, &bits);
-  if ( err != SP_OK ) {
-    printf("error encountered in getting data bits\n");
-    print_error(err);
-    return err;
-  }
-  
-  sp_get_config_parity  (config, &parity);
-  if ( err != SP_OK ) {
-    printf("error encountered in getting parity\n");
-    print_error(err);
-    return err;
-  }
-  
-  sp_get_config_stopbits(config, &stop_bits);
-  if ( err != SP_OK ) {
-    printf("error encountered in getting stop bits\n");
-    print_error(err);
-    return err;
-  }
-  
-  sp_get_config_rts     (config, &rts);
-  if ( err != SP_OK ) {
-    printf("error encountered in getting RTS\n");
-    print_error(err);
-    return err;
-  }
-  
-  sp_get_config_cts     (config, &cts);
-  if ( err != SP_OK ) {
-    printf("error encountered in getting CTS\n");
-    print_error(err);
-    return err;
-  }
-  
-  sp_get_config_dtr     (config, &dtr);
-  if ( err != SP_OK ) {
-    printf("error encountered in getting DTR\n");
-    print_error(err);
-    return err;
-  }
-  
-  sp_get_config_dsr     (config, &dsr);
-  if ( err != SP_OK ) {
-    printf("error encountered in getting DSR\n");
-    print_error(err);
-    return err;
-  }
-  
-  sp_get_config_xon_xoff(config, &xon_xoff);
-  if ( err != SP_OK ) {
-    printf("error encountered in getting XON/XOFF\n");
-    print_error(err);
-    return err;
-  }
+  CHECK_ERR();
+  err = sp_get_config_bits    (config, &bits);
+  CHECK_ERR();
+  err = sp_get_config_parity  (config, &p);
+  CHECK_ERR();
+  err = sp_get_config_stopbits(config, &stop_bits);
+  CHECK_ERR();
+  err = sp_get_config_rts     (config, &r);
+  CHECK_ERR();
+  err = sp_get_config_cts     (config, &c);
+  CHECK_ERR();
+  err = sp_get_config_dtr     (config, &dt);
+  CHECK_ERR();
+  err = sp_get_config_dsr     (config, &ds);
+  CHECK_ERR();
+  err = sp_get_config_xon_xoff(config, &x);
+  CHECK_ERR();
 
   // print configuration variables
-  printf("Baud: %d\n", baudrate);
-  printf("Data bits: %d\n", bits);
-  printf("Parity: ");
-  switch(parity) {
-  case SP_PARITY_INVALID:
-    printf("INVALID\n");
-    break;
-  case SP_PARITY_NONE:
-    printf("None\n");
-    break;
-  case SP_PARITY_ODD:
-    printf("Odd\n");
-    break;
-  case SP_PARITY_EVEN:
-    printf("Even\n");
-    break;
-  case SP_PARITY_MARK:
-    printf("Mark\n");
-    break;
-  case SP_PARITY_SPACE:
-    printf("Space\n");
-    break;
-  }
-
-  printf("Stop bits: %d\n", stop_bits);
-
-  printf("RTS: ");
-  switch(rts) {
-  case SP_RTS_INVALID:
-    printf("INVALID\n");
-    break;
-  case SP_RTS_OFF:
-    printf("Off\n");
-    break;
-  case SP_RTS_ON:
-    printf("On\n");
-    break;
-  case SP_RTS_FLOW_CONTROL:
-    printf("Flow control\n");
-    break;
-  }
-
-  printf("CTS: ");
-  switch(cts) {
-  case SP_CTS_INVALID:
-    printf("INVALID\n");
-    break;
-  case SP_CTS_IGNORE:
-    printf("Ignore\n");
-    break;
-  case SP_CTS_FLOW_CONTROL:
-    printf("Flow control\n");
-    break;
-  }
-
-  printf("DTR: ");
-  switch(dtr) {
-  case SP_DTR_INVALID:
-    printf("Invalid\n");
-    break;
-  case SP_DTR_OFF:
-    printf("Off\n");
-    break;
-  case SP_DTR_ON:
-    printf("On\n");
-    break;
-  case SP_DTR_FLOW_CONTROL:
-    printf("Flow control\n");
-    break;
-  }
-
-  printf("DSR: ");
-  switch(dsr) {
-  case SP_DSR_INVALID:
-    printf("Invalid\n");
-    break;
-  case SP_DSR_IGNORE:
-    printf("Ignore\n");
-    break;
-  case SP_DSR_FLOW_CONTROL:
-    printf("Flow control\n");
-    break;
-  }
-
-  printf("XON/XOFF: ");
-  switch(xon_xoff) {
-  case SP_XONXOFF_INVALID:
-    printf("Invalid\n");
-    break;
-  case SP_XONXOFF_DISABLED:
-    printf("Disabled\n");
-    break;
-  case SP_XONXOFF_IN:
-    printf("In\n");
-    break;
-  case SP_XONXOFF_OUT:
-    printf("Out\n");
-    break;
-  case SP_XONXOFF_INOUT:
-    printf("In/Out\n");
-    break;
-  }
-
-  fflush(stdout);
+  log_msg(INFO, "Port configuration:\n"
+	  "  Baudrate: %d\n"
+	  "  Data bits: %d\n"
+	  "  Parity: %s\n"
+	  "  Stop bits: %d\n"
+	  "  RTS: %s\n"
+	  "  CTS: %s\n"
+	  "  DTR: %s\n"
+	  "  DSR: %s\n"
+	  "  XON/XOFF: %s",
+	  baudrate, bits,
+	  parity(p), stop_bits,
+	  rts(r), cts(c),
+	  dtr(dt), dsr(ds),
+	  xon_xoff(x));
   
   sp_free_config(config);
-
-  return SP_OK;
+  return 0;
 }
 
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+static const char* parity(enum sp_parity p)
+{
+   switch(p) {
+   case SP_PARITY_INVALID:
+    return "INVALID";
+  case SP_PARITY_NONE:
+      return "None";
+   case SP_PARITY_ODD:
+      return "Odd";
+   case SP_PARITY_EVEN:
+      return "Even";
+   case SP_PARITY_MARK:
+      return "Mark";
+   case SP_PARITY_SPACE:
+      return "Space";
+   default:
+      return "Unknown";
+   } 
+}
 
-enum sp_return set_arduino_config(struct sp_port* port, int baudrate) {
+static const char* rts(enum sp_rts r)
+{
+   switch(r) {
+   case SP_RTS_INVALID:
+      return "INVALID";
+   case SP_RTS_OFF:
+      return "Off";
+   case SP_RTS_ON:
+      return "On";
+   case SP_RTS_FLOW_CONTROL:
+      return "Flow control";
+   default:
+      return "Unknown";
+   }
+}
+
+static const char* cts(enum sp_cts c)
+{
+   switch(c) {
+   case SP_CTS_INVALID:
+      return "INVALID";
+   case SP_CTS_IGNORE:
+      return "Ignore";
+   case SP_CTS_FLOW_CONTROL:
+      return "Flow control";
+   default:
+      return "Unknown";
+   }
+}
+
+static const char* dtr(enum sp_dtr d)
+{
+   switch(d) {
+   case SP_DTR_INVALID:
+      return "INVALID";
+   case SP_DTR_OFF:
+      return "Off";
+   case SP_DTR_ON:
+      return "On";
+   case SP_DTR_FLOW_CONTROL:
+      return "Flow control";
+   default:
+      return "Unknown";
+   }
+}
+
+static const char* dsr(enum sp_dsr d)
+{
+   switch(d) {
+   case SP_DSR_INVALID:
+      return "INVALID";
+   case SP_DSR_IGNORE:
+      return "Ignore";
+   case SP_DSR_FLOW_CONTROL:
+      return "Flow control";
+   default:
+      return "Unknown";
+   }
+}
+
+static const char* xon_xoff(enum sp_xonxoff x)
+{
+   switch(x) {
+   case SP_XONXOFF_INVALID:
+      return "INVALID";
+   case SP_XONXOFF_DISABLED:
+      return "Disabled";
+   case SP_XONXOFF_IN:
+      return "In";
+   case SP_XONXOFF_OUT:
+      return "Out";
+   case SP_XONXOFF_INOUT:
+      return "In/Out";
+   default:
+      return "Unknown";
+   }
+}
+
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+int set_arduino_config(struct sp_port* port, int baudrate) {
   enum sp_return err;
+
   err = sp_set_baudrate(port, baudrate);
-  if ( err != SP_OK ) {
-    printf("error encountered in setting baudrate\n");
-    print_error(err);
-    return err;
-  }
-  
+  CHECK_ERR();
   err = sp_set_bits(port, 8);
-  if ( err != SP_OK ) {
-    printf("error encountered in setting baudrate\n");
-    print_error(err);
-    return err;
-  }
-  
+  CHECK_ERR();
   err = sp_set_parity(port, SP_PARITY_NONE);
-  if ( err != SP_OK ) {
-    printf("error encountered in setting baudrate\n");
-    print_error(err);
-    return err;
-  }
-  
+  CHECK_ERR();
   err = sp_set_stopbits(port, 1);
-  if ( err != SP_OK ) {
-    printf("error encountered in setting baudrate\n");
-    print_error(err);
-    return err;
-  }
-  
+  CHECK_ERR();
   err = sp_set_rts(port, SP_RTS_ON);
-  if ( err != SP_OK ) {
-    printf("error encountered in setting baudrate\n");
-    print_error(err);
-    return err;
-  }
-  
+  CHECK_ERR();
   err = sp_set_cts(port, SP_CTS_IGNORE);
-  if ( err != SP_OK ) {
-    printf("error encountered in setting baudrate\n");
-    print_error(err);
-    return err;
-  }
-  
+  CHECK_ERR();
   err = sp_set_dtr(port, SP_DTR_ON);
-  if ( err != SP_OK ) {
-    printf("error encountered in setting baudrate\n");
-    print_error(err);
-    return err;
-  }
-  
+  CHECK_ERR();
   err = sp_set_dsr(port, SP_DSR_IGNORE);
-  if ( err != SP_OK ) {
-    printf("error encountered in setting baudrate\n");
-    print_error(err);
-    return err;
-  }
-  
+  CHECK_ERR();
   err = sp_set_xon_xoff(port, SP_XONXOFF_DISABLED);
-  if ( err != SP_OK ) {
-    printf("error encountered in setting baudrate\n");
-    print_error(err);
-    return err;
-  }
+  CHECK_ERR();
 
-  return SP_OK;
-}
-
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-enum sp_return enumerate_ports(struct sp_port*** ports, int* n_ports) {
-    int n = 0;
-
-  enum sp_return err = sp_list_ports(ports);
-  for (; (*ports)[n]; n++);
-  if (err != SP_OK) {
-    printf("ERROR: could not get list of ports\n");
-  }
-  printf("\n");
-  (*n_ports) = n;
-  return err;
-}
-
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-void print_error(enum sp_return err) {
-  switch (err) {
-  case SP_ERR_ARG:
-    printf("ERROR: invalid arguments!\n");
-    break;
-  case SP_ERR_FAIL:
-    printf("ERROR: system error occured!\n");
-    break;
-  case SP_ERR_MEM:
-    printf("ERROR: memory allocation error\n");
-    break;
-  case SP_ERR_SUPP:
-    printf("ERROR: the requested operation is not supported by this device\n");
-    break;
-  }
+  return 0;
 }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+int find_metro_mini(struct sp_port **port)
+{
+   enum sp_return err;
+   struct sp_port **list;
+   err = sp_list_ports(&list);
+   CHECK_ERR();
+
+   for (int i=0; list[i] != NULL; i++) {
+      struct sp_port *p = list[i];
+      int vid, pid;
+      err = sp_get_port_usb_vid_pid(p, &vid, &pid);
+      CHECK_ERR();
+
+      if (vid == METRO_MINI_VID && pid == METRO_MINI_PID) {
+	 err = sp_copy_port(p, port);
+	 CHECK_ERR();
+	 sp_free_port_list(list);
+	 return 0;
+      }
+   }
+
+   log_msg(WARN, "did not find any Metro Mini device!");
+
+   sp_free_port_list(list);
+   return 1;
+}
