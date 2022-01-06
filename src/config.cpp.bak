@@ -1,0 +1,401 @@
+// gtk ui
+#include <gtk/gtk.h>
+
+// opencv image processing
+#include <opencv2/core.hpp>
+#include <opencv2/highgui.hpp>
+#include <opencv2/videoio.hpp>
+#include <opencv2/imgproc.hpp>
+
+// libserialport arduino communication
+#include <libserialport.h>
+
+// io
+#include <iostream>
+
+// project headers
+#include "settings.h"
+#include "app_data.h"
+#include "arduino_util.h"
+
+using namespace std;
+using namespace cv;
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+#define UI_FILE "config.ui"
+#define SETTINGS_FILE "rollercoaster-settings.yaml"
+
+void update_settings(GtkWidget*, void*);
+void pick_camera(GtkWidget*, void*);
+void turn_on_track1(GtkWidget* w, void* data_);
+void turn_off_track1(GtkWidget* w, void* data_);
+void turn_on_track2(GtkWidget* w, void* data_);
+void turn_off_track2(GtkWidget* w, void* data_);
+int show_camera(void*);
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+int main(int argc, char** argv) {
+  // setup user data
+  app_data data;
+
+  /*// find tracks
+  enum sp_return err;
+  struct sp_port** ports;
+  int n_ports;
+  err = enumerate_ports(&ports, &n_ports);
+  if ( err != SP_OK ) {
+    cerr << "FATAL: could not get list of serial devices; aborting" << endl;
+    return 1;
+  }
+  if ( n_ports == 0 ) {
+    cerr << "FATAL: no serial devices found; aborting" << endl;
+    return 1;
+  }
+
+  char* track1_name = NULL;
+  char* track2_name = NULL;
+
+  for (int i=0; i<n_ports; i++) {
+    char buf = 0;
+    err = sp_open(ports[i], SP_MODE_READ_WRITE);
+    if ( err != SP_OK ) {
+      cerr << "WARNING: error trying to open port " << sp_get_port_name(ports[i]) << endl;
+    }
+    else {
+      // port opened correctly
+      err = set_arduino_config(ports[i], 9600);
+      if ( err != SP_OK ) {
+	cerr << "WARNING: error configuring port " << sp_get_port_name(ports[i]) << endl;
+	sp_close(ports[i]);
+      }
+      else {
+	sp_blocking_read(ports[i], &buf, 1, 10000);
+	switch(buf) {
+	case '1':
+	  cout << "found track 1 on port " << sp_get_port_name(ports[i]) << endl;
+	  track1_name = sp_get_port_name(ports[i]);
+	  break;
+	case '2':
+	  cout << "found track 2 on port " << sp_get_port_name(ports[i]) << endl;
+	  track2_name = sp_get_port_name(ports[i]);
+	  break;
+	default:
+	  // boring port, close & move on
+	  break;
+	}
+      }
+      sp_close(ports[i]);
+    }
+  }
+
+  // open track 1
+  if ( track1_name == NULL ) {
+    cerr << "FATAL: could not find track 1!" << endl;
+    return 1;
+  }
+  else {
+    err = sp_get_port_by_name(track1_name, &data.track1);
+    if (err != SP_OK) {
+      cerr << "FATAL: could not get port for track 1" << endl;
+      print_error(err);
+      return 1;
+    }
+    err = sp_open(data.track1,SP_MODE_WRITE);
+    if ( err != SP_OK) {
+      cerr << "FATAL: could not open track 1" << endl;
+      print_error(err);
+      return 1;
+    }
+    sp_blocking_read(data.track1, NULL, 1, 10000);
+    }
+
+  // open track 2
+  if ( track2_name == NULL ) {
+    cerr << "FATAL: could not find track 2!" << endl;
+    return 1;
+  }
+  else {
+    err = sp_get_port_by_name(track2_name, &data.track2);
+    if (err != SP_OK) {
+      cerr << "FATAL: could not get port for track 2" << endl;
+      print_error(err);
+      return 1;
+    }
+    err = sp_open(data.track2,SP_MODE_WRITE);
+    if ( err != SP_OK) {
+      cerr << "FATAL: could not open track 2" << endl;
+      print_error(err);
+      return 1;
+    }
+    sp_blocking_read(data.track2, NULL, 1, 10000);
+  }
+
+  sp_free_port_list(ports);*/
+
+  // load camera settings
+  /*if( load_settings(&(data.settings), SETTINGS_FILE) != 0 ) {
+    cout << "WARNING: could not find '" << SETTINGS_FILE << "', using default values" << endl;
+    set_default(&(data.settings));
+  }
+
+  // find all cameras
+  {
+    for(int opencv_id=0; opencv_id<8; opencv_id++) {
+      VideoCapture cap(opencv_id);
+      if ( cap.isOpened() ) {
+	// successfully opened camera, add to list
+	camera_settings s = get_default_camera_settings();
+	s.iscamera1 = false;
+	s.iscamera2 = false;
+
+	if ( opencv_id == data.settings.camera1_id ) {
+	  s = data.settings.camera1_settings;
+	  s.iscamera1 = true;
+	  s.iscamera2 = false;
+	}
+	if ( opencv_id == data.settings.camera2_id ) {
+	  s = data.settings.camera2_settings;
+	  s.iscamera1 = false;
+	  s.iscamera2 = true;
+	}
+
+	s.opencv_id = opencv_id;
+	data.all_settings.push_back(s);
+
+	++opencv_id;
+      }
+    }
+  }
+
+  if ( data.all_settings.size() < 2 ) {
+    // not enough cameras found, abort!
+    cerr << "FATAL: expected at least 2 cameras, found " << data.all_settings.size() << " instead; aborting!" << endl;
+    return 1;
+    }*/
+
+  // open camera 0
+  data.index = 0;
+  data.camera = VideoCapture(data.all_settings[0].opencv_id);
+  if ( !data.camera.isOpened() ) {
+    cerr << "FATAL: could not open cameras" << endl;
+    return 1;
+  }
+  
+  // build window
+  GtkBuilder* builder;
+  GError* error = NULL;
+
+  gtk_init(&argc, &argv);
+
+  builder = gtk_builder_new();
+  if (gtk_builder_add_from_file(builder, UI_FILE, &error) == 0) {
+    g_printerr("Error loading file %s\n", error->message);
+    g_clear_error(&error);
+    return 1;
+  }
+
+  // get widgets for app_data
+  data.widgets.camera1_check = (GtkToggleButton*) gtk_builder_get_object(builder, "camera1_toggle");
+  data.widgets.camera2_check = (GtkToggleButton*) gtk_builder_get_object(builder, "camera2_toggle");
+
+  data.widgets.h_min_scale = (GtkHScale*) gtk_builder_get_object(builder, "h_min_scale");
+  data.widgets.h_max_scale = (GtkHScale*) gtk_builder_get_object(builder, "h_max_scale");
+  data.widgets.s_min_scale = (GtkHScale*) gtk_builder_get_object(builder, "s_min_scale");
+  data.widgets.s_max_scale = (GtkHScale*) gtk_builder_get_object(builder, "s_max_scale");
+  data.widgets.v_min_scale = (GtkHScale*) gtk_builder_get_object(builder, "v_min_scale");
+  data.widgets.v_max_scale = (GtkHScale*) gtk_builder_get_object(builder, "v_max_scale");
+
+  data.widgets.erode_spin = (GtkSpinButton*) gtk_builder_get_object(builder, "erode_spin");
+  data.widgets.dilate_spin = (GtkSpinButton*) gtk_builder_get_object(builder, "dilate_spin");
+
+  data.widgets.width_spin = (GtkSpinButton*) gtk_builder_get_object(builder, "width_spin");
+  data.widgets.height_spin = (GtkSpinButton*) gtk_builder_get_object(builder, "height_spin");
+  data.widgets.x_spin = (GtkSpinButton*) gtk_builder_get_object(builder, "x_spin");
+  data.widgets.y_spin = (GtkSpinButton*) gtk_builder_get_object(builder, "y_spin");
+
+  data.widgets.percent_min_scale = (GtkHScale*) gtk_builder_get_object(builder, "percent_min_scale");
+  data.widgets.percent_max_scale = (GtkHScale*) gtk_builder_get_object(builder, "percent_max_scale");
+
+  update_widgets_from_settings(&data);
+
+  // connect callbacks
+  gtk_builder_add_callback_symbol(builder, "pick_camera", G_CALLBACK(pick_camera));
+  gtk_builder_add_callback_symbol(builder, "update_settings", G_CALLBACK(update_settings));
+  gtk_builder_add_callback_symbol(builder, "turn_on_track1",  G_CALLBACK(turn_on_track1) );
+  gtk_builder_add_callback_symbol(builder, "turn_off_track1", G_CALLBACK(turn_off_track1));
+  gtk_builder_add_callback_symbol(builder, "turn_on_track2",  G_CALLBACK(turn_on_track2) );
+  gtk_builder_add_callback_symbol(builder, "turn_off_track2", G_CALLBACK(turn_off_track2));
+  gtk_builder_connect_signals(builder, &data);
+
+  // list all cameras in the camera combo
+  {
+    GtkComboBoxText* camera_combo = (GtkComboBoxText*) gtk_builder_get_object(builder, "camera_combo");
+    for (auto s : data.all_settings) {
+      string title = "OpenCV ID " + to_string(s.opencv_id);
+      gtk_combo_box_text_append_text(camera_combo, title.c_str());
+    }
+    gtk_combo_box_set_active(GTK_COMBO_BOX(camera_combo), 0);
+  }
+  
+
+  // add main camera loop
+  g_timeout_add(50, show_camera, &data);
+  
+  gtk_main();
+
+  for ( auto camera : data.all_settings ) {
+    if ( camera.iscamera1 ) {
+      data.settings.camera1_settings = camera;
+      data.settings.camera1_id = camera.opencv_id;
+    }
+    if ( camera.iscamera2 ) {
+      data.settings.camera2_settings = camera;
+      data.settings.camera2_id = camera.opencv_id;
+    }
+  }
+
+  // save settings
+  if (save_settings(&(data.settings), SETTINGS_FILE) == 1) {
+    cerr << "CRITICAL: failed to save settings!" << endl;
+  }
+
+  // close track serial ports
+  char off = 'b';
+  sp_blocking_write(data.track1, &off, 1, 100);
+  sp_blocking_write(data.track2, &off, 1, 100);
+  sp_close(data.track1);
+  sp_close(data.track2);
+  
+  return 0;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+void update_settings(GtkWidget* w, void* data_) {
+  app_data* data = (app_data*) data_;
+
+  update_settings_from_widgets(data);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+void pick_camera(GtkWidget* w, void* data_) {
+  app_data* data = (app_data*) data_;
+
+  update_settings_from_widgets(data);
+
+  int index = gtk_combo_box_get_active( GTK_COMBO_BOX(w) );
+  if ( index != data->index ) {
+    // camera changed, open new camera
+    data->index = index;
+    int opencv_id = data->all_settings[data->index].opencv_id;
+    data->camera = VideoCapture(opencv_id);
+    if ( !(data->camera.isOpened()) ) {
+      cerr << "FATAL: failed to open camera!" << endl;
+    }
+  }
+
+  update_widgets_from_settings(data);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+void turn_on_track1(GtkWidget* w, void* data_) {
+  app_data* data = (app_data*) data_;
+
+  data->run_track1 = true;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+void turn_off_track1(GtkWidget* w, void* data_) {
+  app_data* data = (app_data*) data_;
+
+  data->run_track1 = false;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+void turn_on_track2(GtkWidget* w, void* data_) {
+  app_data* data = (app_data*) data_;
+
+  data->run_track2 = true;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+void turn_off_track2(GtkWidget* w, void* data_) {
+  app_data* data = (app_data*) data_;
+
+  data->run_track2 = false;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+int show_camera(void* data_) {
+  app_data* data = (app_data*) data_;
+  Mat frame, hsv, mask_tmp, mask;
+  vector<Mat> chan;
+  camera_settings settings = data->all_settings[data->index];
+  
+  // get frame
+  data->camera >> frame;
+
+  // build mask
+  cvtColor(frame, hsv, COLOR_BGR2HSV);
+  split(hsv,chan);
+  threshold(chan[0],mask,settings.h_max, 255, THRESH_BINARY_INV);
+  threshold(chan[0],mask_tmp,settings.h_min-1, 255, THRESH_BINARY);
+  bitwise_and(mask_tmp,mask,mask);
+
+  threshold(chan[1],mask_tmp,settings.s_max, 255, THRESH_BINARY_INV);
+  bitwise_and(mask_tmp,mask,mask);
+  threshold(chan[1],mask_tmp,settings.s_min-1, 255, THRESH_BINARY);
+  bitwise_and(mask_tmp,mask,mask);
+
+  threshold(chan[2],mask_tmp,settings.v_max, 255, THRESH_BINARY_INV);
+  bitwise_and(mask_tmp,mask,mask);    
+  threshold(chan[2],mask_tmp,settings.v_min-1, 255, THRESH_BINARY);
+  bitwise_and(mask_tmp,mask,mask);
+
+  // erode / dilate mask
+  erode(mask,mask,Mat(),Point(-1,-1),settings.erosions);
+  dilate(mask,mask,Mat(),Point(-1,-1),settings.dilations);
+
+  double percent = 100*double(countNonZero(mask(Rect(settings.x_offset, settings.y_offset, settings.width, settings.height)))) / (settings.width * settings.height);
+    
+  //draw window on frame
+  Scalar color(0,0,255);
+  bool triggered = false;
+  if ( percent >= settings.percent_min && percent <= settings.percent_max ) {
+    // within detection threshold, draw ROI green
+    color = Scalar(0,255,0);
+    triggered = true;
+  }
+  rectangle(frame, Rect(settings.x_offset, settings.y_offset, settings.width, settings.height), color, 2);
+
+  char on = 'a';
+  char off = 'b';
+  
+  if ((triggered && settings.iscamera1) || data->run_track1) {
+    sp_blocking_write(data->track1, &on, 1, 100);
+  }
+  else {
+    sp_blocking_write(data->track1, &off, 1, 100);
+  }
+
+  if ((triggered && settings.iscamera2) || data->run_track2) {
+    sp_blocking_write(data->track2, &on, 1, 100);
+  }
+  else {
+    sp_blocking_write(data->track2, &off, 1, 100);
+  }
+
+  imshow("Mask", mask);
+  imshow("Camera",frame);
+  return 1;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
