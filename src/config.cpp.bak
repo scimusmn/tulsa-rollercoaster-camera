@@ -197,9 +197,6 @@ int main(int argc, char** argv) {
   }
 
   // get widgets for app_data
-  data.widgets.camera1_check = (GtkToggleButton*) gtk_builder_get_object(builder, "camera1_toggle");
-  data.widgets.camera2_check = (GtkToggleButton*) gtk_builder_get_object(builder, "camera2_toggle");
-
   data.widgets.h_min_scale = (GtkHScale*) gtk_builder_get_object(builder, "h_min_scale");
   data.widgets.h_max_scale = (GtkHScale*) gtk_builder_get_object(builder, "h_max_scale");
   data.widgets.s_min_scale = (GtkHScale*) gtk_builder_get_object(builder, "s_min_scale");

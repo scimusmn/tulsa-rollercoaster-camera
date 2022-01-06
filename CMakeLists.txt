@@ -19,6 +19,7 @@ set(CONFIG_SOURCES
   ${ROLLERCOASTER_SOURCE_DIR}/config.cpp
   ${ROLLERCOASTER_SOURCE_DIR}/settings.cpp
   ${ROLLERCOASTER_SOURCE_DIR}/logging.cpp
+  ${ROLLERCOASTER_SOURCE_DIR}/processing.cpp
 #  ${ROLLERCOASTER_SOURCE_DIR}/update.cpp
 #  ${ROLLERCOASTER_SOURCE_DIR}/arduino_util.cpp
 )

@@ -4,9 +4,20 @@
 #include <gtk/gtk.h>
 #include <string>
 
-#include "mask.h"
-
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+struct range_t {
+   int min;
+   int max;
+};
+
+struct mask_settings_t {
+   struct range_t hue;
+   struct range_t saturation;
+   struct range_t value;
+   int erosions;
+   int dilations;
+};
 
 struct roi_settings_t {
    int width;           // width of detection region
@@ -21,28 +32,6 @@ struct camera_settings_t {
    struct mask_settings_t mask;
    struct roi_settings_t roi;
 };
-
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-typedef struct {
-   GtkHScale* h_min_scale;
-   GtkHScale* s_min_scale;
-   GtkHScale* v_min_scale;
-   GtkHScale* h_max_scale;
-   GtkHScale* s_max_scale;
-   GtkHScale* v_max_scale;
-
-   GtkSpinButton* erode_spin;
-   GtkSpinButton* dilate_spin;
-
-   GtkSpinButton* width_spin;
-   GtkSpinButton* height_spin;
-   GtkSpinButton* x_spin;
-   GtkSpinButton* y_spin;
-  
-   GtkHScale* percent_min_scale;
-   GtkHScale* percent_max_scale;
-} settings_widgets;
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

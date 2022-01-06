@@ -79,7 +79,7 @@
   <object class="GtkWindow" id="window1">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
-    <property name="title" translatable="yes">Configure Cameras</property>
+    <property name="title" translatable="yes">Configure Camera</property>
     <property name="resizable">False</property>
     <property name="default_width">440</property>
     <property name="default_height">250</property>
@@ -91,47 +91,6 @@
         <property name="can_focus">False</property>
         <property name="n_rows">21</property>
         <property name="n_columns">2</property>
-        <child>
-          <object class="GtkComboBoxText" id="camera_combo">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <signal name="changed" handler="pick_camera" swapped="no"/>
-          </object>
-          <packing>
-            <property name="right_attach">2</property>
-            <property name="x_options">GTK_FILL</property>
-            <property name="y_options">GTK_FILL</property>
-            <property name="x_padding">4</property>
-            <property name="y_padding">4</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkButton" id="track2_but">
-            <property name="label" translatable="yes">Run Track 2</property>
-            <property name="visible">True</property>
-            <property name="can_focus">True</property>
-            <property name="receives_default">True</property>
-            <signal name="pressed" handler="turn_on_track2" swapped="no"/>
-            <signal name="released" handler="turn_off_track2" swapped="no"/>
-          </object>
-          <packing>
-            <property name="left_attach">1</property>
-            <property name="right_attach">2</property>
-            <property name="top_attach">2</property>
-            <property name="bottom_attach">3</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkHSeparator" id="hseparator1">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-          </object>
-          <packing>
-            <property name="right_attach">2</property>
-            <property name="top_attach">3</property>
-            <property name="bottom_attach">4</property>
-          </packing>
-        </child>
         <child>
           <object class="GtkHScale" id="h_min_scale">
             <property name="visible">True</property>
@@ -556,48 +515,6 @@
             <property name="right_attach">2</property>
             <property name="top_attach">19</property>
             <property name="bottom_attach">20</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkToggleButton" id="camera1_toggle">
-            <property name="label" translatable="yes">Set as Track 1 Camera</property>
-            <property name="visible">True</property>
-            <property name="can_focus">True</property>
-            <property name="receives_default">True</property>
-            <signal name="toggled" handler="update_settings" swapped="no"/>
-          </object>
-          <packing>
-            <property name="top_attach">1</property>
-            <property name="bottom_attach">2</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkToggleButton" id="camera2_toggle">
-            <property name="label" translatable="yes">Set as Track 2 Camera</property>
-            <property name="visible">True</property>
-            <property name="can_focus">True</property>
-            <property name="receives_default">True</property>
-            <signal name="toggled" handler="update_settings" swapped="no"/>
-          </object>
-          <packing>
-            <property name="top_attach">2</property>
-            <property name="bottom_attach">3</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkButton" id="track1_but">
-            <property name="label" translatable="yes">Run Track 1</property>
-            <property name="visible">True</property>
-            <property name="can_focus">True</property>
-            <property name="receives_default">True</property>
-            <signal name="pressed" handler="turn_on_track1" swapped="no"/>
-            <signal name="released" handler="turn_off_track1" swapped="no"/>
-          </object>
-          <packing>
-            <property name="left_attach">1</property>
-            <property name="right_attach">2</property>
-            <property name="top_attach">1</property>
-            <property name="bottom_attach">2</property>
           </packing>
         </child>
       </object>
