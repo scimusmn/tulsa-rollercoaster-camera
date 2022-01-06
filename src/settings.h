@@ -41,7 +41,7 @@ void update_settings_from_widgets(void* data);
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 int load_settings(struct camera_settings_t* settings, std::string settings_file);
-int save_settings(struct camera_settings_t* settings, std::string settings_file);
+int save_settings(struct camera_settings_t settings, std::string settings_file);
 void set_default(struct camera_settings_t* settings);
 struct camera_settings_t get_default_camera_settings();
 

@@ -6,6 +6,9 @@
 // io
 #include <iostream>
 
+// timing
+#include <chrono>
+
 // project headers
 #include "settings.h"
 #include "processing.h"
@@ -15,6 +18,9 @@
 
 #define UI_FILE "config.ui"
 #define SETTINGS_FILE "settings.yaml"
+
+// save interval in seconds
+#define SAVE_INTERVAL 20
 
 struct widgets_t {
    GtkHScale* h_min_scale;
@@ -85,6 +91,9 @@ int main(int argc, char** argv) {
       return 1;
    }
 
+   std::chrono::duration<int> save_interval(SAVE_INTERVAL);
+   std::chrono::steady_clock::time_point last_save = std::chrono::steady_clock::now();
+
    log_msg(DEBUG, "building GTK window");
    struct widgets_t widgets;
    error = build_config_window(UI_FILE, &widgets, settings);
@@ -94,9 +103,17 @@ int main(int argc, char** argv) {
    }
 
    log_msg(DEBUG, "entering main loop");
-   while (loop(camera, settings, widgets) != 1) {}
+   while (loop(camera, settings, widgets) != 1) {
+      if (std::chrono::steady_clock::now() - last_save > save_interval) {
+	 log_msg(INFO, "saving settings");
+	 save_settings(settings, SETTINGS_FILE);
+	 last_save = std::chrono::steady_clock::now();
+      }
+   }
 
-   
+   log_msg(INFO, "saving settings");
+   save_settings(settings, SETTINGS_FILE);
+   return 0;
 }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
