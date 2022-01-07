@@ -37,7 +37,7 @@ pkg_check_modules(GTK REQUIRED gtk+-3.0)
 
 include_directories(${OpenCV_INCLUDE_DIRS})
 include_directories(${GTK_INCLUDE_DIRS})
-link_directories(${GTK_LIBRARY_DIRS})
+link_directories(${GTK_LIBRARY_DIRS} /usr/local/lib)
 
 add_definitions(${GTK_CFLAGS_OTHER})
 
