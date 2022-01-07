@@ -25,10 +25,12 @@ set(CONFIG_SOURCES
 set(ROLLERCOASTER_SOURCES
   ${ROLLERCOASTER_SOURCE_DIR}/rollercoaster.cpp
   ${ROLLERCOASTER_SOURCE_DIR}/settings.cpp
-  ${ROLLERCOASTER_SOURCE_DIR}/arduino_util.cpp )
+  ${ROLLERCOASTER_SOURCE_DIR}/logging.cpp
+  ${ROLLERCOASTER_SOURCE_DIR}/processing.cpp
+  ${ROLLERCOASTER_SOURCE_DIR}/arduino_util.cpp)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_HOME_DIRECTORY}/bin)
 
-#find_package(libserialport REQUIRED)
+# find_package(libserialport REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(GTK REQUIRED gtk+-3.0)
@@ -39,10 +41,10 @@ link_directories(${GTK_LIBRARY_DIRS})
 
 add_definitions(${GTK_CFLAGS_OTHER})
 
-# add_executable(rollercoaster ${ROLLERCOASTER_SOURCES})
+add_executable(rollercoaster ${ROLLERCOASTER_SOURCES})
 add_executable(config ${CONFIG_SOURCES})
 
-# target_link_libraries(rollercoaster ${OpenCV_LIBS} ${GTK_LIBRARIES} m serialport)
+target_link_libraries(rollercoaster ${OpenCV_LIBS} ${GTK_LIBRARIES} m serialport)
 target_link_libraries(config ${OpenCV_LIBS} ${GTK_LIBRARIES} m serialport)
 
 #print_all_variables()
