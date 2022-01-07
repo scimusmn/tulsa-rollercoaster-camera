@@ -4,7 +4,21 @@
 CAMERA_DIR=`pwd`
 
 #install dependencies
-sudo apt install build-essential cmake libgtk-3-dev libopencv-dev libserialport-dev pkg-config
+sudo apt install build-essential cmake libgtk-3-dev libopencv-dev pkg-config
+
+# debian package version of libserialport doesn't work on kernels >5.10
+# so for modern ones we need the more recently patched repo version
+sudo apt remove libserialport0 libserialport-dev
+pushd .
+cd
+git clone https://github.com/sigrokproject/libserialport
+cd libserialport
+./autogen.sh
+./configure
+make
+sudo make install
+popd
+
 
 #prepare makefile
 cmake .
