@@ -40,6 +40,8 @@ int main(int argc, char** argv) {
 	   "    hue: [%d-%d]\n"
 	   "    saturation: [%d-%d]\n"
 	   "    value: [%d-%d]\n"
+	   "    erosions: %d\n"
+	   "    dilations: %d\n"
 	   "  detection region:\n"
 	   "    size: (width=%d, height=%d)\n"
 	   "    offset: (x=%d, y=%d)\n"
@@ -47,6 +49,8 @@ int main(int argc, char** argv) {
 	   settings.mask.hue.min, settings.mask.hue.max,
 	   settings.mask.saturation.min, settings.mask.saturation.max,
 	   settings.mask.value.min, settings.mask.value.max,
+	   settings.mask.erosions,
+	   settings.mask.dilations,
 
 	   settings.roi.width, settings.roi.height,
 	   settings.roi.x_offset, settings.roi.y_offset,

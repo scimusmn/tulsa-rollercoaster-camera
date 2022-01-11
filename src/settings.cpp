@@ -30,6 +30,9 @@ int load_settings(struct camera_settings_t* s, std::string settings_file) {
    s->mask.value.min = (int)value["min"];
    s->mask.value.max = (int)value["max"];
 
+   s->mask.erosions = (int)value["erosions"];
+   s->mask.dilations = (int)value["dilations"];
+
    // roi s
    log_msg(TRACE, "load_settings(): read ROI settings");
    cv::FileNode roi = fs["detection_region"];
@@ -73,6 +76,9 @@ int save_settings(struct camera_settings_t s, std::string settings_file) {
    fs << "min" << s.mask.value.min;
    fs << "max" << s.mask.value.max;
    fs << "}";
+
+   fs << "erosions" << s.mask.erosions;
+   fs << "dilations" << s.mask.dilations;
 
    fs << "}";
 
