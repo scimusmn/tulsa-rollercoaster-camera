@@ -163,6 +163,22 @@ static int loop(cv::VideoCapture& camera,
 {
    log_msg(TRACE, "loop(): update settings");
    update_settings(&settings, &widgets);
+   log_msg(TRACE, "camera settings:\n"
+	   "  mask:\n"
+	   "    hue: [%d-%d]\n"
+	   "    saturation: [%d-%d]\n"
+	   "    value: [%d-%d]\n"
+	   "  detection region:\n"
+	   "    size: (width=%d, height=%d)\n"
+	   "    offset: (x=%d, y=%d)\n"
+	   "    detection range: [%d-%d\%]\n",
+	   settings.mask.hue.min, settings.mask.hue.max,
+	   settings.mask.saturation.min, settings.mask.saturation.max,
+	   settings.mask.value.min, settings.mask.value.max,
+
+	   settings.roi.width, settings.roi.height,
+	   settings.roi.x_offset, settings.roi.y_offset,
+	   settings.roi.percent_min, settings.roi.percent_max);
 
    log_msg(TRACE, "loop(): load frame");
    cv::Mat frame, mask;

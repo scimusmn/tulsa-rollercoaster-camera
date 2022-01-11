@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "processing.h"
+#include "logging.h"
 
 void build_mask(cv::Mat& destination, cv::Mat& input, struct mask_settings_t settings)
 {
