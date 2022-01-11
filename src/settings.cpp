@@ -30,8 +30,8 @@ int load_settings(struct camera_settings_t* s, std::string settings_file) {
    s->mask.value.min = (int)value["min"];
    s->mask.value.max = (int)value["max"];
 
-   s->mask.erosions = (int)value["erosions"];
-   s->mask.dilations = (int)value["dilations"];
+   s->mask.erosions = (int)mask["erosions"];
+   s->mask.dilations = (int)mask["dilations"];
 
    // roi s
    log_msg(TRACE, "load_settings(): read ROI settings");
